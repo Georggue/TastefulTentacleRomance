@@ -64,6 +64,13 @@ struct BeltRibbon
 	float ribbon;
 	vec3 col;
 };
+struct Monocle
+{
+	float monocle;
+	vec3 monocleFrameCol;
+	float monocleGlass;
+	vec3 monocleGlassCol;
+};
 struct Octopus
 {	
 	BodyBoobiesNeckHeadNoseEyes body;
@@ -75,9 +82,9 @@ struct Octopus
 	Dress dress;
 	Jacket jacket;
 	BeltRibbon beltRibbon;
+	Monocle monocle;
+	
 	float dist;
-	bool bodyHit;
-	bool dressHit;
 	vec3 col;
 };
 struct Kelp
@@ -88,6 +95,7 @@ struct Kelp
 }kelp;
 Octopus frieda;
 Octopus fridolin;
+float worldDist;
 vec3 opCheapBend( vec3 p )
 {
     float c = cos(20.0*p.y/3);
@@ -131,6 +139,8 @@ Octopus setOctoColors(Octopus monster, bool isMale)
 		monster.shirt.col = vec3(1);
 		monster.jacket.col = vec3(29,42,69)/255;
 		monster.beltRibbon.col = vec3(76,94,40)/255;
+		monster.monocle.monocleFrameCol = vec3(255,254,91)/255;
+		monster.monocle.monocleGlassCol = vec3(143,234,250)/255;
 	}
 	return monster;
 }
@@ -188,6 +198,7 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		// halo FRIEDA
 		vec3 haloPos = headPos;
 		haloPos.y -=.25;
+		haloPos.y += -0.01 + sin(iGlobalTime*3)*0.05;
 		monster.halo.halo = fTorus(haloPos,.0125,.2);
 		
 		headPos.y -=.02;		
@@ -353,6 +364,17 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		float sphereEyeFilled1 = fSphere(eyeballPoint,0.03);
 		headPos.x +=.2;
 		 
+		//monocle
+		vec3 monoclePoint = headPos;
+		monoclePoint.x-=0.2;
+		monoclePoint.y +=0.025;
+		monoclePoint.z +=0.055;
+		monoclePoint = rotateX(monoclePoint,PI / 2);
+		monster.monocle.monocle = fDisc(monoclePoint,0.03);
+		float monocleCutOut = fSphere(monoclePoint,0.04);
+		monster.monocle.monocle = opDifference(monster.monocle.monocle,monocleCutOut);
+		monster.monocle.monocleGlass = fDisc(monoclePoint,0.028);
+		
 		float sphereEye2 = fSphere(headPos, 0.09);
 		eyeballPoint = headPos;
 		eyeballPoint.y-=.01;
@@ -414,10 +436,11 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		
 		// jacket FRIDOLIN
 		monster.jacket.jacket = smin(monster.body.body,monster.body.neck,0.2);
+		monster.jacket.jacket = smin(monster.jacket.jacket,monster.tentacles.tentacles,0.2);
 		monster.jacket.jacket *= .4;
 		bodyPos.y += .35;
 		bodyPos.z += .26;
-		float boxCutJacket = fBox(bodyPos, vec3(.08,.5,.25));
+		float boxCutJacket = fBox(bodyPos, vec3(.08,.45,.25));
 		monster.jacket.jacket = opDifference(monster.jacket.jacket, boxCutJacket);
 		
 		// bow tie (--> ribbon) FRIDOLIN
@@ -438,6 +461,7 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		// hat (--> together with ribbon, same color) FRIDOLIN
 		hatPos.x -= .25;
 		hatPos.y -= .59;
+		hatPos.y += -0.01 + sin(iGlobalTime*3)*0.05;
 		hatPos = rotateZ(hatPos, -PI/8);
 		float hat = fCylinder(hatPos, 0.15,0.1);
 		hatPos.y += .09;
@@ -449,7 +473,110 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 	monster = setOctoColors(monster,isMale);
 	return monster;
 } 
-
+vec4 calculateColors(bool isMale, vec3 uv)
+{
+	Octopus monster;
+	vec4 col = vec4(1);
+	if(isMale == FRIEDA)
+	{
+		monster = frieda;
+		
+		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
+		{
+			col = vec4(monster.eyeballs.col,1);			
+		}
+		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
+		{
+			col = vec4(monster.lips.col,1);
+		}
+		else if(monster.beltRibbon.belt < monster.dress.dress)
+		{
+			col = vec4(monster.beltRibbon.col,1);			
+		}
+				else if(monster.beltRibbon.ribbon < monster.body.totalDist)
+		{
+			col = vec4(monster.beltRibbon.col,1);			
+		}
+		
+		else if(monster.dress.dress < monster.body.totalDist)
+		{
+			col = vec4(monster.dress.col,1);
+			col.rgb += (texture2D(tex1, uv.xy*2).x)*.25;
+					
+		}
+		else if(monster.tentacles.tentacles < monster.body.body)
+		{
+			col =vec4(monster.tentacles.col,1);
+			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
+		
+		}
+		else if(monster.halo.halo < monster.body.body && monster.halo.halo < monster.body.head)
+		{
+			col = vec4(monster.halo.col,1);		
+		}		
+		else
+		{
+			col =  vec4(monster.body.col,1);
+			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
+		
+		
+		}
+	}
+	else
+	{
+		monster= fridolin;
+		
+		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head && monster.eyeballs.eyeballs < monster.monocle.monocle && monster.eyeballs.eyeballs < monster.monocle.monocleGlass)
+		{
+			col = vec4(monster.eyeballs.col,1);
+		}
+		else if(monster.monocle.monocle < monster.body.head && monster.monocle.monocle < monster.eyeballs.eyeballs && monster.monocle.monocle < monster.monocle.monocleGlass)
+		{
+			col = vec4(monster.monocle.monocleFrameCol,1);
+		}else if(monster.monocle.monocleGlass < monster.body.head && monster.monocle.monocleGlass < monster.eyeballs.eyeballs && monster.monocle.monocleGlass<monster.monocle.monocle)
+		{
+			col = vec4(monster.monocle.monocleGlassCol,0.1);
+		}
+		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
+		{
+			col = vec4(monster.lips.col,1);			
+		}				
+		else if(monster.dress.dress < monster.body.totalDist)
+		{
+			col = vec4(monster.dress.col,1);
+			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
+			
+		}
+		else if(monster.tentacles.tentacles < monster.body.body)
+		{
+			col = vec4(monster.tentacles.col,1);
+			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
+		
+		}
+		else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon)
+		{
+			col = vec4(monster.jacket.col,1);
+			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
+		
+		}
+		else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon) 
+		{
+			col = vec4(monster.shirt.col,1);			
+		}		
+		
+		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
+		{
+			col = vec4(monster.beltRibbon.col,1);			
+		}
+		else
+		{
+			col =  vec4(monster.body.col,1);
+			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
+			
+		}
+	}
+	return col;
+}
 Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 {
 	Octopus monster = octoInput;
@@ -468,53 +595,7 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = opUnion(dist, octoInput.beltRibbon.belt);
 		dist = opUnion(dist, octoInput.beltRibbon.ribbon);
 		monster.dist = dist;
-		monster.bodyHit = false;
-		monster.dressHit = false;
-		vec3 col = vec3(1);
-		// if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
-		// {
-			// col = monster.eyeballs.col;
-			
-		// }
-		// else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
-		// {
-			// col = monster.lips.col;
-			
-		// }
-		// else if(monster.beltRibbon.belt < monster.dress.dress)
-		// {
-			// col = monster.beltRibbon.col;
-			
-		// }
-				// else if(monster.beltRibbon.ribbon < monster.body.totalDist)
-		// {
-			// col = monster.beltRibbon.col;
-			
-		// }
-		
-		// else if(monster.dress.dress < monster.body.totalDist)
-		// {
-			// col = monster.dress.col;
-			// monster.dressHit = true;
-		
-		// }
-		// else if(monster.tentacles.tentacles < monster.body.body)
-		// {
-			// col = monster.tentacles.col;
-			// monster.bodyHit = true;
-			
-		// }else if(monster.halo.halo < monster.body.body && monster.halo.halo < monster.body.head)
-		// {
-			// col = monster.halo.col;
-		
-		// }		
-		// else
-		// {
-			// col =  monster.body.col;
-			// monster.bodyHit = true;
-		
-		// }
-		monster.col = col;
+	
 	}
 	else if(isMale == FRIDOLIN)
 	{		
@@ -523,6 +604,8 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = smin(dist,octoInput.tentacles.tentacles,0.1);
 		dist = opDifference(dist,octoInput.body.eyes);
 		dist = opUnion(dist,octoInput.eyeballs.eyeballs);
+		dist = opUnion(dist,octoInput.monocle.monocle);
+		dist = opUnion(dist,octoInput.monocle.monocleGlass);
 		dist = opUnion(dist,octoInput.lips.lips);
 		monster.body.totalDist = dist;
 		dist = opUnion(dist, octoInput.shirt.shirt);
@@ -531,55 +614,7 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = opUnion(dist, octoInput.beltRibbon.ribbon);
 		
 		monster.dist = dist;
-		monster.bodyHit = false;
-		monster.dressHit = false;
-		vec3 col = vec3(1);
-		// if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
-		// {
-			// col = monster.eyeballs.col;
-		// }
-		// else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
-		// {
-			// col = monster.lips.col;
-			
-		// }		
 		
-		// else if(monster.dress.dress < monster.body.totalDist)
-		// {
-			// col = monster.dress.col;
-			// monster.dressHit = true;
-			
-		// }
-		// else if(monster.tentacles.tentacles < monster.body.body)
-		// {
-			// col = monster.tentacles.col;
-			// monster.bodyHit = true;
-			
-		// }
-		// else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon)
-		// {
-			// col = monster.jacket.col;
-			// monster.dressHit = true;
-			
-		// }
-		// else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon) 
-		// {
-			// col = monster.shirt.col;
-			
-		// }		
-		
-		// else if(monster.beltRibbon.ribbon < monster.body.totalDist)
-		// {
-			// col = monster.beltRibbon.col;
-			
-		// }
-		// else
-		// {
-			// col =  monster.body.col;
-			// monster.bodyHit = true;
-			
-		// }
-		monster.col = col;
 	}
 	
 	return monster;
@@ -610,28 +645,13 @@ float distField(vec3 point)
 	fridolin = calculateOctopusStuff(fridolin, FRIDOLIN);
 	
 	float d1 = min(plane, kelp.dist);
-	if(frieda.dist < fridolin.dist)
-	{
-		globalCol = frieda.col;
-	}else
-	{	
-		globalCol = fridolin.col;
-	}
+
 	if(kelp.dist < plane && kelp.dist < frieda.dist)
-	{
-		frieda.bodyHit = false;
-		frieda.dressHit = false;
+	{		
 		kelp.kelpHit = true;
 	}
-	if(d1 < frieda.dist && d1 < fridolin.dist)
-	{
-		globalCol = vec3(97,101,145)/255;
-		frieda.bodyHit = false;
-		frieda.dressHit = false;
-		fridolin.bodyHit = false;
-		fridolin.dressHit = false;
-	}
-		
+	
+	worldDist = d1;
 	d1 = min(d1,frieda.dist);
 	d1 = min(d1,fridolin.dist);
 	
@@ -665,6 +685,7 @@ void main()
 	
 	//step along the ray 
 	float glowCol = 0.0;
+	
     for(int steps = 0; steps < maxSteps; ++steps)
     {
 		//check how far the point is from the nearest surface
@@ -682,46 +703,33 @@ void main()
         point = camP + t * camDir;
     }
 
-	vec3 color = vec3(0, 0, 1);
+	vec4 color = vec4(0, 0, 1,1);
 	if(objectHit)
 	{	
-	
-		//hier farben erst berechnen
-		vec3 material = globalCol;
-		
+		vec4 material;
+		if(frieda.dist < fridolin.dist && frieda.dist < worldDist)
+		{
+			material = calculateColors(FRIEDA,point);
+		}else if(fridolin.dist < frieda.dist && fridolin.dist < worldDist)
+		{
+			material = calculateColors(FRIDOLIN,point);
+		}
+		else
+		{				
+			material = vec4(vec3(97,101,145)/255,1);
+		}		
 		
 		if(kelp.kelpHit){
-			material = kelp.col;
-			// anythingHit = true;
+			material = vec4(kelp.col,1);
 		}
 				
-		if(frieda.bodyHit) {
-			material += (texture2D(tex0, point.xy*4).x)*0.25;
-			// anythingHit = true;
-		} 
-	  	else if(frieda.dressHit)
-		{
-			material += (texture2D(tex1, point.xy*2).x)*.25;
-			// anythingHit = true;
-		}
-		if(fridolin.bodyHit) {
-			material += (texture2D(tex0, point.xy*4).x)*0.25;			
-			// anythingHit = true;
-		}
-		else if(fridolin.dressHit) {
-			// material += (texture2D(tex1, point.xy*2).x)*0.25;
-			// anythingHit = true;
-		}
-	  		
-		
-		
 		// vec3 normal = getNormal(point, 0.01);
 		// vec3 lightDir = normalize(vec3(0, -1.0, 1));
 		// vec3 toLight = -lightDir;
 		// float diffuse = max(0, dot(toLight, normal));
 		// vec3 ambient = vec3(0.1);
 		// color = ambient + diffuse * material;
-		color = ambientOcclusion(point, 0.2 , 20) * material;
+		color.rgba = ambientOcclusion(point, 0.2 , 20) * material.rgba;
 	}
 	
 	float gray = (color.r + color.r + color.b + color.g + color.g + color.g)/6;
@@ -732,18 +740,18 @@ void main()
 	float tmax = 10.0;
 	float factor = t/tmax;
 	factor = clamp(factor, 0.0, 1.1);
-	color = mix(color, (vec3(126,164,235)/255), factor);
+	color = vec4(mix(color.rgb, (vec3(126,164,235)/255), factor),color.a);
 	
 	// vignette
 	float innerRadius = .45;
 	float outerRadius = .65;
 	float intensity = .7;
-	vec3 vignetteColor = vec3(37,39,68)/255;
+	vec4 vignetteColor = vec4(vec3(37,39,68)/255,1);
 	vec2 relativePosition = gl_FragCoord.xy / iResolution -.5;
 	relativePosition.y *= iResolution.x / iResolution.y;
 	float len = length(relativePosition);
 	float vignetteOpacity = smoothstep(innerRadius, outerRadius, len) * intensity;
 	color = mix(color, vignetteColor, vignetteOpacity);
 	
-	gl_FragColor = vec4(color, 1);
+	gl_FragColor = vec4(color);
 }
