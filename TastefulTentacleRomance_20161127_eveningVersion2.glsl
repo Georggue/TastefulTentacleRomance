@@ -471,42 +471,49 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		monster.bodyHit = false;
 		monster.dressHit = false;
 		vec3 col = vec3(1);
-		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
-		{
-			col = monster.eyeballs.col;
-		}
-		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
-		{
-			col = monster.lips.col;
-		}
-		else if(monster.beltRibbon.belt < monster.dress.dress)
-		{
-			col = monster.beltRibbon.col;
-		}
-		// else if(monster.beltRibbon.ribbon < monster.body.head && monster.beltRibbon.ribbon < monster.body.body&& monster.beltRibbon.ribbon < monster.halo.halo && monster.beltRibbon.ribbon < monster.tentacles.tentacles && monster.beltRibbon.ribbon < monster.body.neck) 
-		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
-		{
-			col = monster.beltRibbon.col;
-		}
-		// else if(monster.dress.dress < monster.body.body && monster.dress.dress < monster.body.neck && monster.dress.dress < monster.tentacles.tentacles && monster.dress.dress < monster.body.head) 
-		else if(monster.dress.dress < monster.body.totalDist)
-		{
-			col = monster.dress.col;
-			monster.dressHit = true;
-		}
-		else if(monster.tentacles.tentacles < monster.body.body)
-		{
-			col = monster.tentacles.col;
-			monster.bodyHit = true;
-		}else if(monster.halo.halo < monster.body.body && monster.halo.halo < monster.body.head)
-		{
-			col = monster.halo.col;
-		}		
-		else
-		{
-			col =  monster.body.col;
-			monster.bodyHit = true;
-		}
+		// if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
+		// {
+			// col = monster.eyeballs.col;
+			
+		// }
+		// else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
+		// {
+			// col = monster.lips.col;
+			
+		// }
+		// else if(monster.beltRibbon.belt < monster.dress.dress)
+		// {
+			// col = monster.beltRibbon.col;
+			
+		// }
+				// else if(monster.beltRibbon.ribbon < monster.body.totalDist)
+		// {
+			// col = monster.beltRibbon.col;
+			
+		// }
+		
+		// else if(monster.dress.dress < monster.body.totalDist)
+		// {
+			// col = monster.dress.col;
+			// monster.dressHit = true;
+		
+		// }
+		// else if(monster.tentacles.tentacles < monster.body.body)
+		// {
+			// col = monster.tentacles.col;
+			// monster.bodyHit = true;
+			
+		// }else if(monster.halo.halo < monster.body.body && monster.halo.halo < monster.body.head)
+		// {
+			// col = monster.halo.col;
+		
+		// }		
+		// else
+		// {
+			// col =  monster.body.col;
+			// monster.bodyHit = true;
+		
+		// }
 		monster.col = col;
 	}
 	else if(isMale == FRIDOLIN)
@@ -527,44 +534,51 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		monster.bodyHit = false;
 		monster.dressHit = false;
 		vec3 col = vec3(1);
-		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
-		{
-			col = monster.eyeballs.col;
-		}
-		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
-		{
-			col = monster.lips.col;
-		}		
-		// else if(monster.dress.dress < monster.tentacles.tentacles && monster.dress.dress < monster.body.body && monster.dress.dress < monster.body.head) 
-		else if(monster.dress.dress < monster.body.totalDist)
-		{
-			col = monster.dress.col;
-			monster.dressHit = true;
-		}
-		else if(monster.tentacles.tentacles < monster.body.body)
-		{
-			col = monster.tentacles.col;
-			monster.bodyHit = true;
-		}
-		else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon)
-		{
-			col = monster.jacket.col;
-			monster.dressHit = true;
-		}
-		else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon) 
-		{
-			col = monster.shirt.col;
-		}		
-		// else if(monster.beltRibbon.ribbon < monster.body.head && monster.beltRibbon.ribbon < monster.body.body && monster.beltRibbon.ribbon < monster.body.neck)
-		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
-		{
-			col = monster.beltRibbon.col;
-		}
-		else
-		{
-			col =  monster.body.col;
-			monster.bodyHit = true;
-		}
+		// if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
+		// {
+			// col = monster.eyeballs.col;
+		// }
+		// else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
+		// {
+			// col = monster.lips.col;
+			
+		// }		
+		
+		// else if(monster.dress.dress < monster.body.totalDist)
+		// {
+			// col = monster.dress.col;
+			// monster.dressHit = true;
+			
+		// }
+		// else if(monster.tentacles.tentacles < monster.body.body)
+		// {
+			// col = monster.tentacles.col;
+			// monster.bodyHit = true;
+			
+		// }
+		// else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon)
+		// {
+			// col = monster.jacket.col;
+			// monster.dressHit = true;
+			
+		// }
+		// else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon) 
+		// {
+			// col = monster.shirt.col;
+			
+		// }		
+		
+		// else if(monster.beltRibbon.ribbon < monster.body.totalDist)
+		// {
+			// col = monster.beltRibbon.col;
+			
+		// }
+		// else
+		// {
+			// col =  monster.body.col;
+			// monster.bodyHit = true;
+			
+		// }
 		monster.col = col;
 	}
 	
@@ -615,7 +629,7 @@ float distField(vec3 point)
 		frieda.bodyHit = false;
 		frieda.dressHit = false;
 		fridolin.bodyHit = false;
-		fridolin.dressHit = false; // toChange
+		fridolin.dressHit = false;
 	}
 		
 	d1 = min(d1,frieda.dist);
@@ -671,36 +685,35 @@ void main()
 	vec3 color = vec3(0, 0, 1);
 	if(objectHit)
 	{	
+	
+		//hier farben erst berechnen
 		vec3 material = globalCol;
 		
-		bool anythingHit = false;
+		
 		if(kelp.kelpHit){
 			material = kelp.col;
-			anythingHit = true;
+			// anythingHit = true;
 		}
 				
 		if(frieda.bodyHit) {
 			material += (texture2D(tex0, point.xy*4).x)*0.25;
-			anythingHit = true;
+			// anythingHit = true;
 		} 
 	  	else if(frieda.dressHit)
 		{
 			material += (texture2D(tex1, point.xy*2).x)*.25;
-			anythingHit = true;
+			// anythingHit = true;
 		}
 		if(fridolin.bodyHit) {
-			// material += (texture2D(tex0, point.xy*4).x)*0.25;			
-			anythingHit = true;
+			material += (texture2D(tex0, point.xy*4).x)*0.25;			
+			// anythingHit = true;
 		}
 		else if(fridolin.dressHit) {
 			// material += (texture2D(tex1, point.xy*2).x)*0.25;
-			anythingHit = true;
+			// anythingHit = true;
 		}
 	  		
-		if(!anythingHit)
-		{
-			material = globalCol;
-		}
+		
 		
 		// vec3 normal = getNormal(point, 0.01);
 		// vec3 lightDir = normalize(vec3(0, -1.0, 1));
