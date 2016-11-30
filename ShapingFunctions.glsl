@@ -58,8 +58,9 @@ float onAxis(vec2 coord, vec2 screenDelta)
 float function(float x)
 {
     float y = x;
+	y = sign(step(1, mod(x, 2)) - 0.5) * x*step(0.5 * 2, mod(x, 2));
 	// y = sin(x);
- 	y = step(2, mod(x,4.0));
+ 	// y = step(2, mod(x,4.0));
 	// y=mod(step(2,x),2);
 	// y = smoothstep(-3, 3, x);
 	// y = mod(x, 4);
@@ -139,10 +140,10 @@ void main() {
 	
 	//function
     // float graph = plotDifferentiableFunction(coord, 4.0 * screenDelta);
-    float graph = plotFunction(coord, 1 * screenDelta);
+    float graph = plotFunction(coord, 5 * screenDelta);
 
     // combine
-	const vec3 green = vec3(0.0, 1.0, 0.0);
+	const vec3 green = vec3(1.0, 0.0, 0.0);
 	color = (1.0 - graph) * color + graph * green;
 
     gl_FragColor = vec4(color, 1.0);

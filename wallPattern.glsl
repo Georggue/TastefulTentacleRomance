@@ -3,6 +3,8 @@
 uniform vec2 iResolution;
 uniform float iGlobalTime;
 #define PI 3.14159265358979323846
+uniform sampler2D tex0;
+uniform sampler2D tex1;
 
 float smoothBox(vec2 coord, vec2 size, float smoothness){
     size = vec2(0.5) - size * 0.5;
@@ -43,6 +45,28 @@ float polygon(vec2 _st, int sides)
 	return smoothstep(0.4, 0.401, f);	
 	
 }
+vec3 heart(vec2 p)
+{
+	p -= 0.5;
+	p*=2.25;
+	 float tt = mod(iGlobalTime,1.5)/1.5;
+    float ss = pow(tt,.2)*0.5 + 0.5;
+    ss = 1.0 + ss*0.5*sin(tt*6.2831*3.0 + p.y*0.5)*exp(-tt*4.0);
+    p *= vec2(0.5,1.5) + ss*vec2(0.5,-0.5);
+	vec3 bcol = vec3(1);
+
+	float a = atan(p.x,p.y)/3.141593;
+    float r = length(p);
+    float h = abs(a);
+    float d = (13.0*h - 22.0*h*h + 10.0*h*h*h)/(5.0-4.0*h);
+	float s = 0.75 + 0.75*p.x;
+	s *= 1.0-0.25*r;
+	s = 0.5 + 0.6*s;
+	s *= 0.5+0.5*pow( 1.0-clamp(r/d, 0.0, 1.0 ), 0.1 );
+	vec3 hcol = vec3(1.0,0.5*r,0.45)*s;
+	
+    return mix( bcol, hcol, smoothstep( -0.01, 0.01, d-r) );
+}
 float repeatStep(float x, float width)
 {
 	return step(0.5 * width, mod(x, width));
@@ -58,33 +82,73 @@ float direction(float x)
 	float uneven = step(1, mod(x, 2));
     return sign(uneven - 0.5);
 }
-float grid(vec2 _st, float _zoom){
+float stepFunction(int from, int to,float axis)
+{
+	return step(from,axis) - step(to,axis);
+}
+// float alternatingRowSelect(int from,vec2 _st)
+// {
+	// float tile = (stepFunction(from,from+1,_st.y))*mod(_st.x,2);
+	// float tile_1 = (stepFunction(from,from+1,_st.y))*mod(_st.x+1,2);
+	// return tile+tile_1;
+// }
+vec3 grid(vec2 _st, float _zoom){
     _st *= 10;
 	
     // Here is where the offset is happening
    
-	_st.y += direction(_st.x)* move(iGlobalTime);
-	_st.x += direction(_st.y)* move(iGlobalTime+1);
-	// _st.y += step(1.,_st.y)* step(2,mod(iGlobalTime,4.0));
 	
-	float tile = selectTile(_st,4,4);
-		
+	// _st.y += step(1.,_st.y)* step(2,mod(iGlobalTime,4.0));
+	// _st.y += direction(_st.x)* move(iGlobalTime);
+	// _st.x += direction(_st.y)* move(iGlobalTime+1);
+	 float tile = (stepFunction(5,6,_st.y))*mod(_st.x,2);
+	float tile_1 = (stepFunction(5,6,_st.y))*mod(_st.x+1,2);
+	float tile2 = (step(5, _st.x) - step(6,_st.x))*mod(_st.y,2);
+	float tile2_1 = (step(5, _st.x) - step(6,_st.x))*mod(_st.y+1,2);
+	float tile3 = step(5, _st.y) - step(6,_st.y)*mod(_st.x,2);;
+	float tile3_1 = step(5, _st.y) - step(6,_st.y);
+	float tile4 = step(6, _st.x) - step(7,_st.x)*mod(_st.y,2);;
+	float tile4_1 = step(6, _st.x) - step(7,_st.x);
+	
+	
 	vec2 fractCoord = fract(_st);
-	// fractCoord -= 0.5;
-	// fractCoord = rotate2D(fractCoord ,tile*iGlobalTime);
-	// fractCoord += 0.5;
+	fractCoord-=.5;
+	// if(tile == 1)
+	// {
+		// fractCoord = rotate2D(fractCoord ,tile*iGlobalTime);
+	// }else if(tile2==1)
+	// {
+		// fractCoord = rotate2D(fractCoord,tile2*iGlobalTime);
+	// }
+	
+	// fractCoord = rotate2D(fractCoord,(tile+tile2+tile3+tile4)*iGlobalTime);
+		// col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
+
+	fractCoord += 0.5;
 	// currentCoords = fractCoord;
 	 // _st.y += step(1., mod(_st.x,2.0)) * 0.5*iGlobalTime;
-
-    return 1-circle(fractCoord,0.5);
+	vec3 col = heart(fractCoord);
+	if(tile + tile2+tile2_1  >= 1 )
+	{
+		col = texture2D(tex0,_st.xy).rgb;
+		
+	}
+	if(tile3+tile4+tile_1+tile2_1 >=1)
+	{
+		col = texture2D(tex1,_st.xy).rgb;
+	}
+    return col;
 }
 void main() {
 	//coordinates in range [0,1]
     vec2 coord01 = gl_FragCoord.xy/iResolution;
 	vec2 coordAspect = coord01;
 	coordAspect.x *= iResolution.x / iResolution.y;
-		
-	float grid = grid(coordAspect,10.0);
+	
+	// coordAspect.x -=0.6;
+	// coordAspect.y -=0.6;
+	// coordAspect*=3;
+	vec3 grid = grid(coordAspect,10.0);
 	// float poly = 1-polygon(coordAspect,6);	
 	
     // coordAspect.x += step(1., mod(coordAspect.y,2.0)) * 0.5;
@@ -93,6 +157,22 @@ void main() {
 	// vec3 color = vec3(boxColor);
 	
 	float tile = selectTile(coordAspect,5.0,5.0);
-	vec3 color = vec3(1)*grid;
+	vec3 color = grid;
+	
+	float gray = (color.r + color.r + color.b + color.g + color.g + color.g)/6;
+	color.r += 0.1*(1-gray);
+	color.b += 0.3*gray;
+	
+	// vignette
+	float innerRadius = .45;
+	float outerRadius = .65;
+	float intensity = .7;
+	vec3 vignetteColor = vec3(37,39,68)/255;
+	vec2 relativePosition = gl_FragCoord.xy / iResolution -.5;
+	relativePosition.y *= iResolution.x / iResolution.y;
+	float len = length(relativePosition);
+	float vignetteOpacity = smoothstep(innerRadius, outerRadius, len) * intensity;
+	color = mix(color, vignetteColor, vignetteOpacity);
+	
     gl_FragColor = vec4(color, 1.0);
 }
