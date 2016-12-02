@@ -99,16 +99,27 @@ vec3 grid(vec2 _st, float _zoom){
    
 	
 	// _st.y += step(1.,_st.y)* step(2,mod(iGlobalTime,4.0));
-	// _st.y += direction(_st.x)* move(iGlobalTime);
-	// _st.x += direction(_st.y)* move(iGlobalTime+1);
-	 float tile = (stepFunction(5,6,_st.y))*mod(_st.x,2);
-	float tile_1 = (stepFunction(5,6,_st.y))*mod(_st.x+1,2);
-	float tile2 = (step(5, _st.x) - step(6,_st.x))*mod(_st.y,2);
-	float tile2_1 = (step(5, _st.x) - step(6,_st.x))*mod(_st.y+1,2);
-	float tile3 = step(5, _st.y) - step(6,_st.y)*mod(_st.x,2);;
-	float tile3_1 = step(5, _st.y) - step(6,_st.y);
-	float tile4 = step(6, _st.x) - step(7,_st.x)*mod(_st.y,2);;
-	float tile4_1 = step(6, _st.x) - step(7,_st.x);
+	// _st.x += step(1.,_st.x)* step(2,mod(iGlobalTime,4.0));
+	
+	_st.y += direction(_st.x)* move(iGlobalTime);
+	_st.x += direction(_st.y)* move(iGlobalTime+1);
+	float tile = (stepFunction(4,5,_st.y))*mod(_st.x,2);
+	float tile2 =(stepFunction(5,6,_st.x))*mod(_st.y,2);
+	 
+	float tile3 = (stepFunction(6,7,_st.x))*mod(_st.y,2);
+	float tile4 = (stepFunction(5,6,_st.y))*mod(_st.x,2);
+	
+	float tile_1 = (stepFunction(4,5,_st.y))*mod(_st.x+1,2);
+	float tile2_1 =(stepFunction(5,6,_st.x))*mod(_st.y+1,2);
+	 
+	float tile3_1 = (stepFunction(6,7,_st.x))*mod(_st.y+1,2);
+	float tile4_1 = (stepFunction(5,6,_st.y))*mod(_st.x+1,2);
+	
+	// float tile2_1 = (step(5, _st.x) - step(6,_st.x))*mod(_st.y+1,2);
+	// float tile3 = step(5, _st.y) - step(6,_st.y)*mod(_st.x,2);;
+	// float tile3_1 = step(5, _st.y) - step(6,_st.y);
+	// float tile4 = step(6, _st.x) - step(7,_st.x)*mod(_st.y,2);;
+	// float tile4_1 = step(6, _st.x) - step(7,_st.x);
 	
 	
 	vec2 fractCoord = fract(_st);
@@ -127,16 +138,21 @@ vec3 grid(vec2 _st, float _zoom){
 	fractCoord += 0.5;
 	// currentCoords = fractCoord;
 	 // _st.y += step(1., mod(_st.x,2.0)) * 0.5*iGlobalTime;
+	// vec3 col = vec3(polygon(fractCoord,2));
+	// fractCoord *=sin(iGlobalTime);
 	vec3 col = heart(fractCoord);
-	if(tile + tile2+tile2_1  >= 1 )
+	
+	float tileSum1 = tile + tile2 + tile3_1 + tile4_1;
+	float tileSum2 = tile3 + tile4 + tile_1 + tile2_1;
+	if(tileSum1  >= 1 && (tileSum2 <= 3))
 	{
-		col = texture2D(tex0,_st.xy).rgb;
+		col = texture2D(tex0,_st.xy).rgb ;
 		
-	}
-	if(tile3+tile4+tile_1+tile2_1 >=1)
+	}	
+	if(tileSum2 >=1 && (tileSum1 <= 3))
 	{
 		col = texture2D(tex1,_st.xy).rgb;
-	}
+	}	
     return col;
 }
 void main() {
