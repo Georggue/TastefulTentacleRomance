@@ -103,6 +103,8 @@ vec3 grid(vec2 _st, float _zoom){
 	
 	_st.y += direction(_st.x)* move(iGlobalTime);
 	_st.x += direction(_st.y)* move(iGlobalTime+1);
+	 // _st.x += step(1., mod(_st.y,2.0)) * 0.5*iGlobalTime;	
+	 // _st.y += step(1., mod(_st.x,2.0)) * 0.5*iGlobalTime;
 	float tile = (stepFunction(4,5,_st.y))*mod(_st.x,2);
 	float tile2 =(stepFunction(5,6,_st.x))*mod(_st.y,2);
 	 

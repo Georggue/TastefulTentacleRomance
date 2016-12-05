@@ -639,6 +639,7 @@ float distField(vec3 point)
 	float plane = fPlane(point, vec3(0, 1, 0), 0.1);
 	kelp = distKelp(point);
 	kelp.kelpHit = false;
+	
 	frieda = distMonster(point, FRIEDA, frieda); // frieda
 	frieda = calculateOctopusStuff(frieda, FRIEDA);
 	fridolin = distMonster(point, FRIDOLIN, fridolin); // fridolin
@@ -728,7 +729,7 @@ void main()
 		// vec3 toLight = -lightDir;
 		// float diffuse = max(0, dot(toLight, normal));
 		// vec3 ambient = vec3(0.1);
-		// color = ambient + diffuse * material;
+		// color.rgb = ambient + diffuse * material.rgb;
 		color.rgba = ambientOcclusion(point, 0.2 , 20) * material.rgba;
 	}
 	
