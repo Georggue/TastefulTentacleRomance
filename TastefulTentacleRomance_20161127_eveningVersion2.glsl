@@ -14,6 +14,11 @@ const float epsilon = 0.01;
 const int maxSteps = 128;
 const float glowRadius = 0.1;
 
+struct Raymarch
+{
+	vec4 pointHit;
+	float rayDist;
+};
 struct BodyBoobiesNeckHeadNoseEyes
 {
 	float body;
@@ -483,7 +488,7 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		
 		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
 		{
-			col = vec4(monster.eyeballs.col,1);			
+			col = vec4(monster.eyeballs.col,1.);			
 		}
 		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
 		{
@@ -500,7 +505,7 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		
 		else if(monster.dress.dress < monster.body.totalDist)
 		{
-			col = vec4(monster.dress.col,1);
+			col = vec4(monster.dress.col,1.);
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*.25;
 					
 		}
@@ -512,13 +517,17 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		}
 		else if(monster.halo.halo < monster.body.body && monster.halo.halo < monster.body.head)
 		{
-			col = vec4(monster.halo.col,1);		
+			col = vec4(monster.halo.col,1.);		
 		}		
 		else
 		{
 			col =  vec4(monster.body.col,1);
+			//Same body transformations as above
+			uv.x -=3;			
+			uv = rotateZ(uv,sin(PI / 2 * iGlobalTime)/4);
+			uv.y -= 0.85;
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
-		
+		    // col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
 		
 		}
 	}
@@ -571,7 +580,13 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		else
 		{
 			col =  vec4(monster.body.col,1);
+			//Same point transformations as for head rotation
+			uv.y -= .2;
+			uv = rotateZ(uv,sin(PI / 2 * iGlobalTime)/4);
+			uv.y -= 0.85;
+			// uv = rotateZ(uv,sin(PI / 2 * iGlobalTime)/4);
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
+			
 			
 		}
 	}
@@ -671,21 +686,15 @@ float ambientOcclusion(vec3 point, float delta, int samples)
 	occ = clamp(occ, 0, 1);
 	return 1 - occ;
 }
-
-void main()
-{	
-	vec3 camP = calcCameraPos();
-	camP.z += -3.0;
-	camP.y += 0.3;
-	vec3 camDir = calcCameraRayDir(80.0, gl_FragCoord.xy, iResolution);
-	
-	//start point is the camera position
-	vec3 point = camP; 	
+Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
+{
+//start point is the camera position
+	vec3 point = rayOrigin; 	
 	bool objectHit = false;
+	Raymarch rm;
 	float t = 0.0;
 	
-	//step along the ray 
-	float glowCol = 0.0;
+	//step along the ray 	
 	
     for(int steps = 0; steps < maxSteps; ++steps)
     {
@@ -701,19 +710,68 @@ void main()
 		//not so close -> we can step at least dist without hitting anything
         t += dist;
 		//calculate new point
-        point = camP + t * camDir;
+        point = rayOrigin + t * rayDirection;
     }
+	
+	if(objectHit)
+	{
+		rm.pointHit = vec4(point,1);
+		rm.rayDist = t;
+		return rm;
+	}
+	else
+	{
+		rm.pointHit = vec4(point,0);
+		rm.rayDist = t;
+		return rm;
+	}
+	
+}
+void main()
+{	
+	vec3 camP = calcCameraPos();
+	camP.z += -3.0;
+	camP.y += 0.3;
+	vec3 camDir = calcCameraRayDir(80.0, gl_FragCoord.xy, iResolution);
+	
+	Raymarch rm = rayMarch(camP,camDir);
 
 	vec4 color = vec4(0, 0, 1,1);
-	if(objectHit)
+	if(rm.pointHit.a == 1.)
 	{	
 		vec4 material;
+		//Frieda is drawn
 		if(frieda.dist < fridolin.dist && frieda.dist < worldDist)
 		{
-			material = calculateColors(FRIEDA,point);
-		}else if(fridolin.dist < frieda.dist && fridolin.dist < worldDist)
+			material = calculateColors(FRIEDA,rm.pointHit.xyz);
+			//Ray hit transparent object
+			if(material.a < 1.0)
+			{
+				//We need to go DEEPER!
+				rm.pointHit.xyz += epsilon*5*camDir;
+				Raymarch transparencyMarch = rayMarch(rm.pointHit.xyz,camDir);								
+				if(transparencyMarch.pointHit.a == 1.0)
+				{
+					material += calculateColors(FRIEDA,transparencyMarch.pointHit.xyz)*material.a;
+				}
+			}
+		}
+		// Fridolin is drawn
+		else if(fridolin.dist < frieda.dist && fridolin.dist < worldDist)
 		{
-			material = calculateColors(FRIDOLIN,point);
+			material = calculateColors(FRIDOLIN,rm.pointHit.xyz);
+			//Ray hit transparent object
+			if(material.a < 1.0)
+			{
+				//We need to go DEEPER!
+				rm.pointHit.xyz += epsilon*5*camDir;
+				Raymarch transparencyMarch = rayMarch(rm.pointHit.xyz,camDir);
+								
+				if(transparencyMarch.pointHit.a == 1.0)
+				{
+					material += calculateColors(FRIDOLIN,transparencyMarch.pointHit.xyz)*material.a;
+				}
+			}
 		}
 		else
 		{				
@@ -730,7 +788,7 @@ void main()
 		// float diffuse = max(0, dot(toLight, normal));
 		// vec3 ambient = vec3(0.1);
 		// color.rgb = ambient + diffuse * material.rgb;
-		color.rgba = ambientOcclusion(point, 0.2 , 20) * material.rgba;
+		color.rgba = ambientOcclusion(rm.pointHit.xyz, 0.2 , 20) * material.rgba;
 	}
 	
 	float gray = (color.r + color.r + color.b + color.g + color.g + color.g)/6;
@@ -739,7 +797,7 @@ void main()
 	
 	// fog
 	float tmax = 10.0;
-	float factor = t/tmax;
+	float factor = rm.rayDist/tmax;
 	factor = clamp(factor, 0.0, 1.1);
 	color = vec4(mix(color.rgb, (vec3(126,164,235)/255), factor),color.a);
 	
