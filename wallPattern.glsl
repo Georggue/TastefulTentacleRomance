@@ -53,7 +53,7 @@ vec3 heart(vec2 p)
     float ss = pow(tt,.2)*0.5 + 0.5;
     ss = 1.0 + ss*0.5*sin(tt*6.2831*3.0 + p.y*0.5)*exp(-tt*4.0);
     p *= vec2(0.5,1.5) + ss*vec2(0.5,-0.5);
-	vec3 bcol = vec3(1);
+	vec3 bcol = vec3(0);
 
 	float a = atan(p.x,p.y)/3.141593;
     float r = length(p);
@@ -63,7 +63,7 @@ vec3 heart(vec2 p)
 	s *= 1.0-0.25*r;
 	s = 0.5 + 0.6*s;
 	s *= 0.5+0.5*pow( 1.0-clamp(r/d, 0.0, 1.0 ), 0.1 );
-	vec3 hcol = vec3(1.0,0.5*r,0.45)*s;
+	vec3 hcol = vec3(1.0,0.65*r,0.35)*s;
 	
     return mix( bcol, hcol, smoothstep( -0.01, 0.01, d-r) );
 }
@@ -103,8 +103,7 @@ vec3 grid(vec2 _st, float _zoom){
 	
 	_st.y += direction(_st.x)* move(iGlobalTime);
 	_st.x += direction(_st.y)* move(iGlobalTime+1);
-	 // _st.x += step(1., mod(_st.y,2.0)) * 0.5*iGlobalTime;	
-	 // _st.y += step(1., mod(_st.x,2.0)) * 0.5*iGlobalTime;
+
 	float tile = (stepFunction(4,5,_st.y))*mod(_st.x,2);
 	float tile2 =(stepFunction(5,6,_st.x))*mod(_st.y,2);
 	 
@@ -148,12 +147,12 @@ vec3 grid(vec2 _st, float _zoom){
 	float tileSum2 = tile3 + tile4 + tile_1 + tile2_1;
 	if(tileSum1  >= 1 && (tileSum2 <= 3))
 	{
-		col = texture2D(tex0,_st.xy).rgb ;
+		// col = texture2D(tex0,_st.xy).rgb ;
 		
 	}	
 	if(tileSum2 >=1 && (tileSum1 <= 3))
 	{
-		col = texture2D(tex1,_st.xy).rgb;
+		// col = texture2D(tex1,_st.xy).rgb;
 	}	
     return col;
 }
@@ -185,7 +184,7 @@ void main() {
 	float innerRadius = .45;
 	float outerRadius = .65;
 	float intensity = .7;
-	vec3 vignetteColor = vec3(37,39,68)/255;
+	vec3 vignetteColor = vec3(0,0,0)/255;
 	vec2 relativePosition = gl_FragCoord.xy / iResolution -.5;
 	relativePosition.y *= iResolution.x / iResolution.y;
 	float len = length(relativePosition);

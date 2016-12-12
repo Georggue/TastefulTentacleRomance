@@ -76,6 +76,11 @@ struct Monocle
 	float monocleGlass;
 	vec3 monocleGlassCol;
 };
+struct Champagne 
+{
+	float champagne;
+	vec3 col;
+};
 struct Octopus
 {	
 	BodyBoobiesNeckHeadNoseEyes body;
@@ -88,6 +93,7 @@ struct Octopus
 	Jacket jacket;
 	BeltRibbon beltRibbon;
 	Monocle monocle;
+	Champagne champagne;
 	
 	float dist;
 	vec3 col;
@@ -401,7 +407,7 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		monster.body.nose = fCapsule(nosePoint,0.1, 0.03);
 		headPos.y += .12;
 		monster.body.head = opUnion(monster.body.head,monster.body.nose);
-		
+		// monster.body.head = smin(monster.body.head,monster.body.nose,0.1);
 		vec3 ribbonPoint = headPos;
 		
 		headPos.z -= 0.09;
@@ -473,6 +479,10 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		float brim = fCylinder(hatPos, 0.2, 0.01);
 		hat = opUnion(hat, brim);
 		monster.beltRibbon.ribbon = opUnion(monster.beltRibbon.ribbon, hat);
+		
+		// champagne bottle
+		ribbonBeltPoint.x -= .3;
+		monster.champagne.champagne = fCylinder(ribbonBeltPoint, 0.2, 0.2); // TODO
 	}
 	// color
 	monster = setOctoColors(monster,isMale);
@@ -537,14 +547,14 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		
 		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head && monster.eyeballs.eyeballs < monster.monocle.monocle && monster.eyeballs.eyeballs < monster.monocle.monocleGlass)
 		{
-			col = vec4(monster.eyeballs.col,1);
+			col = vec4(monster.eyeballs.col,1.);
 		}
 		else if(monster.monocle.monocle < monster.body.head && monster.monocle.monocle < monster.eyeballs.eyeballs && monster.monocle.monocle < monster.monocle.monocleGlass)
 		{
 			col = vec4(monster.monocle.monocleFrameCol,1);
 		}else if(monster.monocle.monocleGlass < monster.body.head && monster.monocle.monocleGlass < monster.eyeballs.eyeballs && monster.monocle.monocleGlass<monster.monocle.monocle)
 		{
-			col = vec4(monster.monocle.monocleGlassCol,0.1);
+			col = vec4(monster.monocle.monocleGlassCol,0.0);
 		}
 		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
 		{
