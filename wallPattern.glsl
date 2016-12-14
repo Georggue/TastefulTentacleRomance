@@ -174,7 +174,16 @@ void main() {
 	// vec3 color = vec3(boxColor);
 	
 	float tile = selectTile(coordAspect,5.0,5.0);
+	
 	vec3 color = grid;
+	coord01*=2;
+	coord01.x +=0.5;
+	coord01.y -=0.5;		
+	// if(coord01.x >= 1 && coord01.y<=1 && coord01.x <= 2 && coord01.y >= 0)
+	// {
+		color.rgb += texture2D(tex0,coord01).rgb * selectTile(coord01,0,1);
+		
+	// }
 	
 	float gray = (color.r + color.r + color.b + color.g + color.g + color.g)/6;
 	color.r += 0.1*(1-gray);
