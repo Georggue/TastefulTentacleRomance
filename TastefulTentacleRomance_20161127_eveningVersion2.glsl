@@ -152,6 +152,7 @@ Octopus setOctoColors(Octopus monster, bool isMale)
 		monster.beltRibbon.col = vec3(76,94,40)/255;
 		monster.monocle.monocleFrameCol = vec3(255,254,91)/255;
 		monster.monocle.monocleGlassCol = vec3(143,234,250)/255;
+		monster.champagne.col = vec3(76,94,40)/255;
 	}
 	return monster;
 }
@@ -481,8 +482,15 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		monster.beltRibbon.ribbon = opUnion(monster.beltRibbon.ribbon, hat);
 		
 		// champagne bottle
-		ribbonBeltPoint.x -= .3;
-		monster.champagne.champagne = fCylinder(ribbonBeltPoint, 0.2, 0.2); // TODO
+		ribbonBeltPoint.x -= 1.;
+		ribbonBeltPoint.y -= .5;
+		monster.champagne.champagne = fCylinder(ribbonBeltPoint, 0.1, 0.15); 
+		ribbonBeltPoint.y -= .1;
+		monster.champagne.champagne = opUnion(monster.champagne.champagne, fCapsule(ribbonBeltPoint, .1, .05));
+		ribbonBeltPoint.y -= .3;
+		monster.champagne.champagne = smin(monster.champagne.champagne, fCylinder(ribbonBeltPoint, .03, .1), .11);
+		float inner = monster.champagne.champagne * 1.1;
+		monster.champagne.champagne = opDifference(monster.champagne.champagne, inner);
 	}
 	// color
 	monster = setOctoColors(monster,isMale);
@@ -496,39 +504,45 @@ vec4 calculateColors(bool isMale, vec3 uv)
 	{
 		monster = frieda;
 		
+		// eyeballs
 		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
 		{
 			col = vec4(monster.eyeballs.col,1.);			
 		}
+		// lips
 		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
 		{
 			col = vec4(monster.lips.col,1);
 		}
+		// belt
 		else if(monster.beltRibbon.belt < monster.dress.dress)
 		{
 			col = vec4(monster.beltRibbon.col,1);			
 		}
-				else if(monster.beltRibbon.ribbon < monster.body.totalDist)
+		// ribbon
+		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
 		{
 			col = vec4(monster.beltRibbon.col,1);			
 		}
-		
+		// dress
 		else if(monster.dress.dress < monster.body.totalDist)
 		{
 			col = vec4(monster.dress.col,1.);
-			col.rgb += (texture2D(tex1, uv.xy*2).x)*.25;
-					
+			col.rgb += (texture2D(tex1, uv.xy*2).x)*.25;			
 		}
+		// tentacles
 		else if(monster.tentacles.tentacles < monster.body.body)
 		{
 			col =vec4(monster.tentacles.col,1);
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
 		
 		}
+		// halo
 		else if(monster.halo.halo < monster.body.body && monster.halo.halo < monster.body.head)
 		{
 			col = vec4(monster.halo.col,1.);		
-		}		
+		}
+		// body
 		else
 		{
 			col =  vec4(monster.body.col,1);
@@ -545,48 +559,63 @@ vec4 calculateColors(bool isMale, vec3 uv)
 	{
 		monster= fridolin;
 		
+		// eyeballs
 		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head && monster.eyeballs.eyeballs < monster.monocle.monocle && monster.eyeballs.eyeballs < monster.monocle.monocleGlass)
 		{
 			col = vec4(monster.eyeballs.col,1.);
 		}
+		// monocle frame
 		else if(monster.monocle.monocle < monster.body.head && monster.monocle.monocle < monster.eyeballs.eyeballs && monster.monocle.monocle < monster.monocle.monocleGlass)
 		{
 			col = vec4(monster.monocle.monocleFrameCol,1);
-		}else if(monster.monocle.monocleGlass < monster.body.head && monster.monocle.monocleGlass < monster.eyeballs.eyeballs && monster.monocle.monocleGlass<monster.monocle.monocle)
-		{
-			col = vec4(monster.monocle.monocleGlassCol,0.0);
 		}
+		// monocle glass
+		else if(monster.monocle.monocleGlass < monster.body.head && monster.monocle.monocleGlass < monster.eyeballs.eyeballs && monster.monocle.monocleGlass<monster.monocle.monocle)
+		{
+			col = vec4(monster.monocle.monocleGlassCol,0.05);
+		}
+		// lips
 		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
 		{
 			col = vec4(monster.lips.col,1);			
-		}				
-		else if(monster.dress.dress < monster.body.totalDist)
+		}
+		// trousers
+		else if(monster.dress.dress < monster.body.totalDist && monster.dress.dress < monster.champagne.champagne)
 		{
 			col = vec4(monster.dress.col,1);
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
 			
 		}
-		else if(monster.tentacles.tentacles < monster.body.body)
+		// tentacles
+		else if(monster.tentacles.tentacles < monster.body.body && monster.tentacles.tentacles < monster.champagne.champagne)
 		{
 			col = vec4(monster.tentacles.col,1);
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
 		
 		}
-		else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon)
+		// jacket
+		else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon && monster.jacket.jacket < monster.champagne.champagne)
 		{
 			col = vec4(monster.jacket.col,1);
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
 		
 		}
-		else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon) 
+		// shirt
+		else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon && monster.shirt.shirt < monster.champagne.champagne) 
 		{
 			col = vec4(monster.shirt.col,1);			
-		}		
-		
+		}
+		// champagne bottle
+		else if(monster.champagne.champagne < monster.body.totalDist) 
+		{
+			col = vec4(monster.champagne.col, .4);
+		}
+		// ribbon, hat
 		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
 		{
 			col = vec4(monster.beltRibbon.col,1);			
 		}
+		// body
 		else
 		{
 			col =  vec4(monster.body.col,1);
@@ -596,8 +625,6 @@ vec4 calculateColors(bool isMale, vec3 uv)
 			uv.y -= 0.85;
 			// uv = rotateZ(uv,sin(PI / 2 * iGlobalTime)/4);
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
-			
-			
 		}
 	}
 	return col;
@@ -637,6 +664,7 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = opUnion(dist,octoInput.dress.dress);
 		dist = opUnion(dist, octoInput.jacket.jacket);
 		dist = opUnion(dist, octoInput.beltRibbon.ribbon);
+		dist = opUnion(dist, octoInput.champagne.champagne);
 		
 		monster.dist = dist;
 		

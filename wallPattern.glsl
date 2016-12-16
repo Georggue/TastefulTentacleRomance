@@ -181,7 +181,7 @@ void main() {
 	coord01.y -=0.5;		
 	// if(coord01.x >= 1 && coord01.y<=1 && coord01.x <= 2 && coord01.y >= 0)
 	// {
-		color.rgb += texture2D(tex0,coord01).rgb * selectTile(coord01,0,1);
+		color.rgb += texture2D(tex0,coord01).rgb * selectTile(coord01,0.1,1);
 		
 	// }
 	
