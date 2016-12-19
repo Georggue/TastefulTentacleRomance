@@ -80,6 +80,8 @@ struct Wine
 {
 	float wine;
 	float liquid;
+	float label;
+	vec3 labelCol;
 	vec3 liquidCol;
 	vec3 col;
 };
@@ -123,7 +125,8 @@ float distTentacle(vec3 point, float factor)
 	float dist = 10e7;
 	for(int i = 0; i < 4; ++i)
 	{
-		vec3 p2 = rotateY( point, (TAU *i /8.0)+iGlobalTime*4 /*+ 0.04 * rr*/  );
+		vec3 p2 = rotateY( point, (TAU *i /8.0)+iGlobalTime + 0.5*sin(iGlobalTime) * rr  );
+		// p2 = rotateX(point, (TAU * i/8.0));
 		// p2.y -= 3 * rr * exp2(-10.0 * rr);
 		vec3 p3 = rotateZ(p2, PI / 2);
 		float cylinder = fCapsule(p3, factor * (1 - rr * 0.5),10.0);
@@ -155,7 +158,8 @@ Octopus setOctoColors(Octopus monster, bool isMale)
 		monster.monocle.monocleFrameCol = vec3(255,254,91)/255;
 		monster.monocle.monocleGlassCol = vec3(143,234,250)/255;
 		monster.wine.col = vec3(76,94,40)/255;
-		monster.wine.liquidCol = vec3(255,10,10)/255;
+		monster.wine.liquidCol = vec3(0,0,0)/255;
+		monster.wine.labelCol = vec3(0,1,0);
 	}
 	return monster;
 }
@@ -488,15 +492,25 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		ribbonBeltPoint.x -= 1.;
 		ribbonBeltPoint.y -= .5;
 		monster.wine.wine = fCylinder(ribbonBeltPoint, 0.1, 0.15); 
+		vec3 labelPoint = ribbonBeltPoint;
 		ribbonBeltPoint.y -= .1;
 		monster.wine.wine = opUnion(monster.wine.wine, fCapsule(ribbonBeltPoint, .1, .05));
 		ribbonBeltPoint.y -= .3;
 		monster.wine.wine = smin(monster.wine.wine, fCylinder(ribbonBeltPoint, .03, .1), .11);
-		float inner = monster.wine.wine * 1.1;
+		float inner = monster.wine.wine * 1.05;
 		monster.wine.wine = opDifference(monster.wine.wine, inner);	
-		float liquid = inner * 0.5;
-		monster.wine.wine = opUnion(monster.wine.wine, liquid);
-		monster.wine.liquid = liquid;
+		// wine label
+		labelPoint.z += .3;
+		// monster.wine.label = monster.wine.wine*0.9;
+		float cutLabel = fBox(labelPoint, vec3(.08,.08, .01));
+		// monster.wine.label = opIntersection(cutLabel, monster.wine.label);
+		monster.wine.label = cutLabel;
+		// end wine label, continue wine bottle
+		// wine liquid
+		monster.wine.liquid = inner * 1.02;
+		ribbonBeltPoint.y -= .4;
+		float cutLiquid = fBox(ribbonBeltPoint, vec3(.03, .5,.25));
+		monster.wine.liquid = opDifference(monster.wine.liquid, cutLiquid);
 	}
 	// color
 	monster = setOctoColors(monster,isMale);
@@ -611,13 +625,19 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		{
 			col = vec4(monster.shirt.col,1);			
 		}
+		// wine label
+		// else if(monster.wine.label < monster.body.totalDist) {
+			// col = vec4(monster.wine.labelCol, 1.);
+		// }
 		// wine bottle
-		else if(monster.wine.wine < monster.body.totalDist) 
+		else if(monster.wine.wine < monster.body.totalDist && monster.wine.wine < monster.wine.label) 
 		{
-			col = vec4(monster.wine.col, .4);
-		}else if(monster.wine.liquid < monster.wine.wine && monster.wine.liquid < monster.body.totalDist)
+			col = vec4(monster.wine.col, .05);
+		}
+		// wine liquid
+		else if(monster.wine.liquid < monster.wine.wine && monster.wine.liquid < monster.body.totalDist)
 		{	
-			col = vec4(monster.wine.liquidCol,1);
+			col = vec4(monster.wine.liquidCol,0.9);
 		}
 		// ribbon, hat
 		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
@@ -673,8 +693,9 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = opUnion(dist,octoInput.dress.dress);
 		dist = opUnion(dist, octoInput.jacket.jacket);
 		dist = opUnion(dist, octoInput.beltRibbon.ribbon);
+		// dist = opUnion(dist, octoInput.wine.label);
 		dist = opUnion(dist, octoInput.wine.wine);
-		
+		dist = opUnion(dist, octoInput.wine.liquid);
 		monster.dist = dist;
 		
 	}
