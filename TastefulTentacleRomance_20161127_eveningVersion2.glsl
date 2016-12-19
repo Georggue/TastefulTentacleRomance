@@ -76,9 +76,11 @@ struct Monocle
 	float monocleGlass;
 	vec3 monocleGlassCol;
 };
-struct Champagne 
+struct Wine 
 {
-	float champagne;
+	float wine;
+	float liquid;
+	vec3 liquidCol;
 	vec3 col;
 };
 struct Octopus
@@ -93,7 +95,7 @@ struct Octopus
 	Jacket jacket;
 	BeltRibbon beltRibbon;
 	Monocle monocle;
-	Champagne champagne;
+	Wine wine;
 	
 	float dist;
 	vec3 col;
@@ -152,7 +154,8 @@ Octopus setOctoColors(Octopus monster, bool isMale)
 		monster.beltRibbon.col = vec3(76,94,40)/255;
 		monster.monocle.monocleFrameCol = vec3(255,254,91)/255;
 		monster.monocle.monocleGlassCol = vec3(143,234,250)/255;
-		monster.champagne.col = vec3(76,94,40)/255;
+		monster.wine.col = vec3(76,94,40)/255;
+		monster.wine.liquidCol = vec3(255,10,10)/255;
 	}
 	return monster;
 }
@@ -481,16 +484,19 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		hat = opUnion(hat, brim);
 		monster.beltRibbon.ribbon = opUnion(monster.beltRibbon.ribbon, hat);
 		
-		// champagne bottle
+		// wine bottle
 		ribbonBeltPoint.x -= 1.;
 		ribbonBeltPoint.y -= .5;
-		monster.champagne.champagne = fCylinder(ribbonBeltPoint, 0.1, 0.15); 
+		monster.wine.wine = fCylinder(ribbonBeltPoint, 0.1, 0.15); 
 		ribbonBeltPoint.y -= .1;
-		monster.champagne.champagne = opUnion(monster.champagne.champagne, fCapsule(ribbonBeltPoint, .1, .05));
+		monster.wine.wine = opUnion(monster.wine.wine, fCapsule(ribbonBeltPoint, .1, .05));
 		ribbonBeltPoint.y -= .3;
-		monster.champagne.champagne = smin(monster.champagne.champagne, fCylinder(ribbonBeltPoint, .03, .1), .11);
-		float inner = monster.champagne.champagne * 1.1;
-		monster.champagne.champagne = opDifference(monster.champagne.champagne, inner);
+		monster.wine.wine = smin(monster.wine.wine, fCylinder(ribbonBeltPoint, .03, .1), .11);
+		float inner = monster.wine.wine * 1.1;
+		monster.wine.wine = opDifference(monster.wine.wine, inner);	
+		float liquid = inner * 0.5;
+		monster.wine.wine = opUnion(monster.wine.wine, liquid);
+		monster.wine.liquid = liquid;
 	}
 	// color
 	monster = setOctoColors(monster,isMale);
@@ -580,35 +586,38 @@ vec4 calculateColors(bool isMale, vec3 uv)
 			col = vec4(monster.lips.col,1);			
 		}
 		// trousers
-		else if(monster.dress.dress < monster.body.totalDist && monster.dress.dress < monster.champagne.champagne)
+		else if(monster.dress.dress < monster.body.totalDist && monster.dress.dress < monster.wine.wine && monster.dress.dress < monster.wine.liquid)
 		{
 			col = vec4(monster.dress.col,1);
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
 			
 		}
 		// tentacles
-		else if(monster.tentacles.tentacles < monster.body.body && monster.tentacles.tentacles < monster.champagne.champagne)
+		else if(monster.tentacles.tentacles < monster.body.body && monster.tentacles.tentacles < monster.wine.wine && monster.tentacles.tentacles < monster.wine.liquid)
 		{
 			col = vec4(monster.tentacles.col,1);
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
 		
 		}
 		// jacket
-		else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon && monster.jacket.jacket < monster.champagne.champagne)
+		else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon && monster.jacket.jacket < monster.wine.wine && monster.jacket.jacket < monster.wine.liquid)
 		{
 			col = vec4(monster.jacket.col,1);
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
 		
 		}
 		// shirt
-		else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon && monster.shirt.shirt < monster.champagne.champagne) 
+		else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon && monster.shirt.shirt < monster.wine.wine && monster.shirt.shirt < monster.wine.liquid) 
 		{
 			col = vec4(monster.shirt.col,1);			
 		}
-		// champagne bottle
-		else if(monster.champagne.champagne < monster.body.totalDist) 
+		// wine bottle
+		else if(monster.wine.wine < monster.body.totalDist) 
 		{
-			col = vec4(monster.champagne.col, .4);
+			col = vec4(monster.wine.col, .4);
+		}else if(monster.wine.liquid < monster.wine.wine && monster.wine.liquid < monster.body.totalDist)
+		{	
+			col = vec4(monster.wine.liquidCol,1);
 		}
 		// ribbon, hat
 		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
@@ -664,7 +673,7 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = opUnion(dist,octoInput.dress.dress);
 		dist = opUnion(dist, octoInput.jacket.jacket);
 		dist = opUnion(dist, octoInput.beltRibbon.ribbon);
-		dist = opUnion(dist, octoInput.champagne.champagne);
+		dist = opUnion(dist, octoInput.wine.wine);
 		
 		monster.dist = dist;
 		
@@ -765,6 +774,7 @@ Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
 	}
 	
 }
+// Raymarch TransparencyMarch(vec3 RayOrigin, vec3 RayDir, int iterations)
 void main()
 {	
 	vec3 camP = calcCameraPos();
@@ -792,6 +802,7 @@ void main()
 				{
 					material += calculateColors(FRIEDA,transparencyMarch.pointHit.xyz)*material.a;
 				}
+				
 			}
 		}
 		// Fridolin is drawn
@@ -808,6 +819,15 @@ void main()
 				if(transparencyMarch.pointHit.a == 1.0)
 				{
 					material += calculateColors(FRIDOLIN,transparencyMarch.pointHit.xyz)*material.a;
+				}
+				else if (transparencyMarch.pointHit.a < 1.0)
+				{
+						transparencyMarch.pointHit.xyz += epsilon*5*camDir;
+						Raymarch transparencyMarch2 = rayMarch(transparencyMarch.pointHit.xyz,camDir);
+						if(transparencyMarch2.pointHit.a == 1.0)
+						{
+							material += calculateColors(FRIDOLIN,transparencyMarch2.pointHit.xyz)*material.a;
+						}
 				}
 			}
 		}
