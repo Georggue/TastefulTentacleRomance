@@ -7,8 +7,8 @@
 #define FRIDOLIN true
 uniform vec2 iResolution;
 uniform float iGlobalTime;
-uniform sampler2D tex0;
-uniform sampler2D tex1;
+uniform sampler2D tex0; // octopus body
+uniform sampler2D tex1; // dress
 
 const float epsilon = 0.01;
 const int maxSteps = 128;
@@ -158,8 +158,8 @@ Octopus setOctoColors(Octopus monster, bool isMale)
 		monster.monocle.monocleFrameCol = vec3(255,254,91)/255;
 		monster.monocle.monocleGlassCol = vec3(143,234,250)/255;
 		monster.wine.col = vec3(76,94,40)/255;
-		monster.wine.liquidCol = vec3(0,0,0)/255;
-		monster.wine.labelCol = vec3(0,1,0);
+		monster.wine.liquidCol = vec3(1,0,0);
+		monster.wine.labelCol = vec3(1);
 	}
 	return monster;
 }
@@ -383,7 +383,7 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		float sphereEyeFilled1 = fSphere(eyeballPoint,0.03);
 		headPos.x +=.2;
 		 
-		//monocle
+		//monocle FRIDOLIN
 		vec3 monoclePoint = headPos;
 		monoclePoint.x-=0.2;
 		monoclePoint.y +=0.025;
@@ -488,7 +488,7 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		hat = opUnion(hat, brim);
 		monster.beltRibbon.ribbon = opUnion(monster.beltRibbon.ribbon, hat);
 		
-		// wine bottle
+		// wine bottle FRIDOLIN
 		ribbonBeltPoint.x -= 1.;
 		ribbonBeltPoint.y -= .5;
 		monster.wine.wine = fCylinder(ribbonBeltPoint, 0.1, 0.15); 
@@ -499,17 +499,15 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		monster.wine.wine = smin(monster.wine.wine, fCylinder(ribbonBeltPoint, .03, .1), .11);
 		float inner = monster.wine.wine * 1.05;
 		monster.wine.wine = opDifference(monster.wine.wine, inner);	
-		// wine label
-		labelPoint.z += .3;
-		// monster.wine.label = monster.wine.wine*0.9;
-		float cutLabel = fBox(labelPoint, vec3(.08,.08, .01));
-		// monster.wine.label = opIntersection(cutLabel, monster.wine.label);
-		monster.wine.label = cutLabel;
-		// end wine label, continue wine bottle
-		// wine liquid
-		monster.wine.liquid = inner * 1.02;
+		// wine label FRIDOLIN
+		monster.wine.label = monster.wine.wine*0.9;
+		labelPoint.z += .09;
+		float cutLabel = fBox(labelPoint, vec3(.08,.08, .03));
+		monster.wine.label = opIntersection(cutLabel, monster.wine.label);
+		// wine liquid FRIDOLIN
+		monster.wine.liquid = inner * 1.2;
 		ribbonBeltPoint.y -= .4;
-		float cutLiquid = fBox(ribbonBeltPoint, vec3(.03, .5,.25));
+		float cutLiquid = fBox(ribbonBeltPoint, vec3(.1, .5,.25));
 		monster.wine.liquid = opDifference(monster.wine.liquid, cutLiquid);
 	}
 	// color
@@ -524,45 +522,45 @@ vec4 calculateColors(bool isMale, vec3 uv)
 	{
 		monster = frieda;
 		
-		// eyeballs
+		// eyeballs FRIEDA
 		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
 		{
 			col = vec4(monster.eyeballs.col,1.);			
 		}
-		// lips
+		// lips FRIEDA
 		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
 		{
 			col = vec4(monster.lips.col,1);
 		}
-		// belt
+		// belt FRIEDA
 		else if(monster.beltRibbon.belt < monster.dress.dress)
 		{
 			col = vec4(monster.beltRibbon.col,1);			
 		}
-		// ribbon
+		// ribbon FRIEDA
 		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
 		{
 			col = vec4(monster.beltRibbon.col,1);			
 		}
-		// dress
+		// dress FRIEDA
 		else if(monster.dress.dress < monster.body.totalDist)
 		{
 			col = vec4(monster.dress.col,1.);
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*.25;			
 		}
-		// tentacles
+		// tentacles FRIEDA
 		else if(monster.tentacles.tentacles < monster.body.body)
 		{
 			col =vec4(monster.tentacles.col,1);
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
 		
 		}
-		// halo
+		// halo FRIEDA
 		else if(monster.halo.halo < monster.body.body && monster.halo.halo < monster.body.head)
 		{
 			col = vec4(monster.halo.col,1.);		
 		}
-		// body
+		// body FRIEDA
 		else
 		{
 			col =  vec4(monster.body.col,1);
@@ -579,72 +577,73 @@ vec4 calculateColors(bool isMale, vec3 uv)
 	{
 		monster= fridolin;
 		
-		// eyeballs
+		// eyeballs FRIDOLIN
 		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head && monster.eyeballs.eyeballs < monster.monocle.monocle && monster.eyeballs.eyeballs < monster.monocle.monocleGlass)
 		{
 			col = vec4(monster.eyeballs.col,1.);
 		}
-		// monocle frame
+		// monocle frame FRIDOLIN
 		else if(monster.monocle.monocle < monster.body.head && monster.monocle.monocle < monster.eyeballs.eyeballs && monster.monocle.monocle < monster.monocle.monocleGlass)
 		{
 			col = vec4(monster.monocle.monocleFrameCol,1);
 		}
-		// monocle glass
+		// monocle glass FRIDOLIN
 		else if(monster.monocle.monocleGlass < monster.body.head && monster.monocle.monocleGlass < monster.eyeballs.eyeballs && monster.monocle.monocleGlass<monster.monocle.monocle)
 		{
 			col = vec4(monster.monocle.monocleGlassCol,0.05);
 		}
-		// lips
+		// lips FRIDOLIN
 		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
 		{
 			col = vec4(monster.lips.col,1);			
 		}
-		// trousers
-		else if(monster.dress.dress < monster.body.totalDist && monster.dress.dress < monster.wine.wine && monster.dress.dress < monster.wine.liquid)
+		// trousers FRIDOLIN
+		else if(monster.dress.dress < monster.body.totalDist && monster.dress.dress < monster.wine.label && monster.dress.dress < monster.wine.wine && monster.dress.dress < monster.wine.liquid)
 		{
 			col = vec4(monster.dress.col,1);
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
 			
 		}
-		// tentacles
-		else if(monster.tentacles.tentacles < monster.body.body && monster.tentacles.tentacles < monster.wine.wine && monster.tentacles.tentacles < monster.wine.liquid)
+		// tentacles FRIDOLIN
+		else if(monster.tentacles.tentacles < monster.body.body && monster.tentacles.tentacles < monster.wine.label && monster.tentacles.tentacles < monster.wine.wine && monster.tentacles.tentacles < monster.wine.liquid)
 		{
 			col = vec4(monster.tentacles.col,1);
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
 		
 		}
-		// jacket
-		else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon && monster.jacket.jacket < monster.wine.wine && monster.jacket.jacket < monster.wine.liquid)
+		// jacket FRIDOLIN
+		else if(monster.jacket.jacket < monster.shirt.shirt && monster.jacket.jacket < monster.body.totalDist && monster.jacket.jacket < monster.beltRibbon.ribbon && monster.jacket.jacket < monster.wine.label && monster.jacket.jacket < monster.wine.wine && monster.jacket.jacket < monster.wine.liquid)
 		{
 			col = vec4(monster.jacket.col,1);
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
 		
 		}
-		// shirt
-		else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon && monster.shirt.shirt < monster.wine.wine && monster.shirt.shirt < monster.wine.liquid) 
+		// shirt FRIDOLIN
+		else if(monster.shirt.shirt < monster.body.body && monster.shirt.shirt < monster.body.head && monster.shirt.shirt < monster.beltRibbon.ribbon && monster.shirt.shirt < monster.wine.label && monster.shirt.shirt < monster.wine.wine && monster.shirt.shirt < monster.wine.liquid) 
 		{
-			col = vec4(monster.shirt.col,1);			
+			col = vec4(monster.shirt.col,1);
 		}
-		// wine label
-		// else if(monster.wine.label < monster.body.totalDist) {
-			// col = vec4(monster.wine.labelCol, 1.);
-		// }
-		// wine bottle
-		else if(monster.wine.wine < monster.body.totalDist && monster.wine.wine < monster.wine.label) 
+		
+		// wine bottle FRIDOLIN
+		else if(monster.wine.wine < monster.wine.label && monster.wine.wine < monster.body.totalDist) 
 		{
 			col = vec4(monster.wine.col, .05);
 		}
-		// wine liquid
-		else if(monster.wine.liquid < monster.wine.wine && monster.wine.liquid < monster.body.totalDist)
+		// wine liquid FRIDOLIN
+		else if(monster.wine.liquid < monster.wine.label && monster.wine.liquid < monster.wine.wine && monster.wine.liquid < monster.body.totalDist)
 		{	
 			col = vec4(monster.wine.liquidCol,0.9);
 		}
-		// ribbon, hat
+		// wine label FRIDOLIN
+		else if(monster.wine.label < monster.body.totalDist) {
+			col = vec4(monster.wine.labelCol, 1.);
+		}
+		// ribbon, hat FRIDOLIN
 		else if(monster.beltRibbon.ribbon < monster.body.totalDist)
 		{
 			col = vec4(monster.beltRibbon.col,1);			
 		}
-		// body
+		// body FRIDOLIN
 		else
 		{
 			col =  vec4(monster.body.col,1);
@@ -676,7 +675,6 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = opUnion(dist, octoInput.beltRibbon.belt);
 		dist = opUnion(dist, octoInput.beltRibbon.ribbon);
 		monster.dist = dist;
-	
 	}
 	else if(isMale == FRIDOLIN)
 	{		
@@ -693,13 +691,11 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = opUnion(dist,octoInput.dress.dress);
 		dist = opUnion(dist, octoInput.jacket.jacket);
 		dist = opUnion(dist, octoInput.beltRibbon.ribbon);
-		// dist = opUnion(dist, octoInput.wine.label);
+		dist = opUnion(dist, octoInput.wine.label);
 		dist = opUnion(dist, octoInput.wine.wine);
 		dist = opUnion(dist, octoInput.wine.liquid);
 		monster.dist = dist;
-		
 	}
-	
 	return monster;
 }
 Kelp distKelp(vec3 point)
