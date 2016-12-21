@@ -158,7 +158,8 @@ Octopus setOctoColors(Octopus monster, bool isMale)
 		monster.monocle.monocleFrameCol = vec3(255,254,91)/255;
 		monster.monocle.monocleGlassCol = vec3(143,234,250)/255;
 		monster.wine.col = vec3(76,94,40)/255;
-		monster.wine.liquidCol = vec3(1,0,0);
+		// monster.wine.col = vec3(255)/255;
+		monster.wine.liquidCol = vec3(153,0,18)/255;
 		monster.wine.labelCol = vec3(1);
 	}
 	return monster;
@@ -447,7 +448,7 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		monster.dress.dress *= .45;
 		tentaclePoint.y -= move;
 		tentaclePoint.y -= .43;
-		float boxCutTrousers = fBox(tentaclePoint, vec3(.5, .3, .5));
+		float boxCutTrousers = fBox(tentaclePoint, vec3(.5, .27, .5));
 		monster.dress.dress = opDifference(monster.dress.dress, boxCutTrousers);
 		tentaclePoint.y += .43;
 		float torusCutTentacles = fTorus(tentaclePoint, .5, 1.45);
@@ -457,9 +458,11 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		monster.jacket.jacket = smin(monster.body.body,monster.body.neck,0.2);
 		monster.jacket.jacket = smin(monster.jacket.jacket,monster.tentacles.tentacles,0.2);
 		monster.jacket.jacket *= .4;
-		bodyPos.y += .35;
-		bodyPos.z += .26;
-		float boxCutJacket = fBox(bodyPos, vec3(.08,.45,.25));
+		bodyPos.y += .39;
+		bodyPos.z += .2;
+		// float boxCutJacket = fBox(bodyPos, vec3(.08,.40,.25));
+		bodyPos = rotateX(bodyPos,PI);
+		float boxCutJacket = fCapsule(bodyPos, .20,.45);
 		monster.jacket.jacket = opDifference(monster.jacket.jacket, boxCutJacket);
 		
 		// bow tie (--> ribbon) FRIDOLIN
@@ -590,7 +593,7 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		// monocle glass FRIDOLIN
 		else if(monster.monocle.monocleGlass < monster.body.head && monster.monocle.monocleGlass < monster.eyeballs.eyeballs && monster.monocle.monocleGlass<monster.monocle.monocle)
 		{
-			col = vec4(monster.monocle.monocleGlassCol,0.05);
+			col = vec4(monster.monocle.monocleGlassCol,0.4);
 		}
 		// lips FRIDOLIN
 		else if(monster.lips.lips < monster.body.body && monster.lips.lips < monster.body.head && monster.lips.lips < monster.tentacles.tentacles)
@@ -601,6 +604,7 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		else if(monster.dress.dress < monster.body.totalDist && monster.dress.dress < monster.wine.label && monster.dress.dress < monster.wine.wine && monster.dress.dress < monster.wine.liquid)
 		{
 			col = vec4(monster.dress.col,1);
+			
 			col.rgb += (texture2D(tex1, uv.xy*2).x)*0.25;
 			
 		}
@@ -608,6 +612,8 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		else if(monster.tentacles.tentacles < monster.body.body && monster.tentacles.tentacles < monster.wine.label && monster.tentacles.tentacles < monster.wine.wine && monster.tentacles.tentacles < monster.wine.liquid)
 		{
 			col = vec4(monster.tentacles.col,1);
+		
+			
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
 		
 		}
@@ -623,17 +629,17 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		{
 			col = vec4(monster.shirt.col,1);
 		}
-		
-		// wine bottle FRIDOLIN
-		else if(monster.wine.wine < monster.wine.label && monster.wine.wine < monster.body.totalDist) 
-		{
-			col = vec4(monster.wine.col, .05);
-		}
 		// wine liquid FRIDOLIN
 		else if(monster.wine.liquid < monster.wine.label && monster.wine.liquid < monster.wine.wine && monster.wine.liquid < monster.body.totalDist)
 		{	
-			col = vec4(monster.wine.liquidCol,0.9);
+			col = vec4(monster.wine.liquidCol,1.0);
 		}
+		// wine bottle FRIDOLIN
+		else if(monster.wine.wine < monster.wine.label && monster.wine.wine < monster.body.totalDist) 
+		{
+			col = vec4(monster.wine.col, .35);
+		}
+		
 		// wine label FRIDOLIN
 		else if(monster.wine.label < monster.body.totalDist) {
 			col = vec4(monster.wine.labelCol, 1.);
@@ -831,19 +837,24 @@ void main()
 			{
 				//We need to go DEEPER!
 				rm.pointHit.xyz += epsilon*5*camDir;
+				// rm.pointHit.xyz += epsilon*-2*normalize(getNormal(rm.pointHit.xyz,0.01));
 				Raymarch transparencyMarch = rayMarch(rm.pointHit.xyz,camDir);
 								
 				if(transparencyMarch.pointHit.a == 1.0)
 				{
-					material += calculateColors(FRIDOLIN,transparencyMarch.pointHit.xyz)*material.a;
+					// material *= calculateColors(FRIDOLIN,transparencyMarch.pointHit.xyz)*material.a;
+					vec4 col = calculateColors(FRIDOLIN,transparencyMarch.pointHit.xyz);
+					material.rgb = ( material.rgb * material.a) + ((1- material.a)*col.rgb);
 				}
 				else if (transparencyMarch.pointHit.a < 1.0)
 				{
-						transparencyMarch.pointHit.xyz += epsilon*5*camDir;
+						transparencyMarch.pointHit.xyz += epsilon*5*getNormal(transparencyMarch.pointHit.xyz,0.01);
 						Raymarch transparencyMarch2 = rayMarch(transparencyMarch.pointHit.xyz,camDir);
 						if(transparencyMarch2.pointHit.a == 1.0)
 						{
-							material += calculateColors(FRIDOLIN,transparencyMarch2.pointHit.xyz)*material.a;
+							// material *= calculateColors(FRIDOLIN,transparencyMarch2.pointHit.xyz)*material.a;
+							vec4 col = calculateColors(FRIDOLIN,transparencyMarch2.pointHit.xyz);
+							material.rgb = ( material.rgb * material.a) + ((1- material.a)*col.rgb);
 						}
 				}
 			}
@@ -857,7 +868,7 @@ void main()
 			material = vec4(kelp.col,1);
 		}
 				
-		// vec3 normal = getNormal(point, 0.01);
+		// vec3 normal = getNormal(rm.pointHit.rgb, 0.01);
 		// vec3 lightDir = normalize(vec3(0, -1.0, 1));
 		// vec3 toLight = -lightDir;
 		// float diffuse = max(0, dot(toLight, normal));
