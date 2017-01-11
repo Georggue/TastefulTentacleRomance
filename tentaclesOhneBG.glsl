@@ -652,10 +652,10 @@ float distField(vec3 point)
 	// }
 	float d1=0;
 	worldDist = fridolin.dist;
-	d1 = min(d1,frieda.dist);
+	// d1 = min(d1,frieda.dist);
 	d1 = min(d1,fridolin.dist);
 	
-	return  frieda.dist;
+	return  fridolin.dist;
 }
 
 float ambientOcclusion(vec3 point, float delta, int samples)
@@ -707,13 +707,13 @@ void main()
 	if(objectHit)
 	{	
 		vec4 material;
-		if(frieda.dist < fridolin.dist && frieda.dist < worldDist)
-		{
-			material = calculateColors(FRIEDA,point);
-		}else if(fridolin.dist < frieda.dist && fridolin.dist < worldDist)
-		{
-			material = calculateColors(FRIDOLIN,point);
-		}
+		// if(frieda.dist < fridolin.dist && frieda.dist < worldDist)
+		// {
+			// material = calculateColors(FRIEDA,point);
+		// }else if(fridolin.dist < frieda.dist && fridolin.dist < worldDist)
+		// {
+			if(fridolin.dist < worldDist)material = calculateColors(FRIDOLIN,point);
+		
 		else
 		{				
 			material = vec4(vec3(97,101,145)/255,1);

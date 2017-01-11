@@ -77,16 +77,21 @@ float lines(in vec2 pos, float b){
 
 vec3 wood(vec2 coord)
 {
-	coord = rotate2D(coord, gnoise(coord)); // rotate the space
-    float weight = lines(coord, 0.5); // draw lines
-	return 	mix( 	vec3(139,115,85)/255,  	vec3(205,170,125)/255, weight);
+	coord = rotate2D(coord, gnoise(coord)+.25*gnoise(coord)); // rotate the space
+    float weight = lines(coord, 0.9); // draw lines
+	vec2 coord2 = coord.xy;
+	coord2 = rotate2D(coord2,gnoise(coord2));
+	float weight2 = lines(coord2,0.1);
+	vec3 valA = mix( 	vec3(139,115,85)/255,  	vec3(205,170,125)/255, weight);
+	vec3 valB = mix( 	vec3(139,115,85)/255,  	vec3(205,170,125)/255, weight2);
+	return mix(valA,valB,0.5)	;
 }
 
 vec4 calcCol(vec3 coord)
 {
 	if(tableDist < worldDist)
 	{
-		return vec4(wood(0.5 + coord.yx * vec2(1.,0.25)),1);
+		return vec4(wood(coord.zx*3),1);
 	}else{
 		return vec4(1,1,1,1);
 	}
