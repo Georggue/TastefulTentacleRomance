@@ -940,6 +940,7 @@ void main()
 	}
 	
 	float gray = (color.r + color.r + color.b + color.g + color.g + color.g)/6;
+	// float gray =  0.21 *color.r + 0.72 *color.g + 0.07 *color.b;
 	color.r += 0.1*(1-gray);
 	color.b += 0.3*gray;
 	
