@@ -52,7 +52,7 @@ float cave( vec3 p )
     
     vec3 stalactites = vec3(6.0, 0.15, 6.0);
     if(p.y >-1.0){
-	
+	//TODO: clamp as uniform for keyframes
 		f += 0.7500 * clamp(0,1.6,(0.5+snoise( stalactites * p ))); p = m*p*3.06;
 		// f += 0.7500 * (0.5+snoise( stalactites * p )); p = m*p*3.06;
 		f += 0.5000 * gnoise( p ); p = m*p*2.02;
@@ -147,7 +147,11 @@ void main( )
 
     // ray    
 	float r2 = p.x*p.x*0.32 + p.y*p.y;
-    p *= (7.0-sqrt(37.5-11.5*r2))/(r2+1.0); // cool shwobble effect
+	float shwobbliness = 1.0;
+	#ifdef DRUGS
+		shwobbliness *=2;
+	#endif
+    p *= (7.0-sqrt(37.5-11.5*r2))/(r2+shwobbliness); // cool shwobble effect
     vec3 rd = cam * normalize(vec3(p.xy,2.1));
 
     vec3 col =vec3(126,164,235)/255;
