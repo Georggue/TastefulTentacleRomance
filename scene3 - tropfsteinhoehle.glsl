@@ -27,12 +27,13 @@ vec4 texcube( sampler2D sam, in vec3 p, in vec3 n )
 
 vec3 path( float time )
 {
-	return vec3(cos(0.8 * time) + sin(0.64 * time), 0.8 * sin(0.77 * time), time);
+	vec3 path = vec3(cos(noise(0.8) * time) + sin(noise(0.64) * time), 0.8 * sin(0.77 * time), time);
+	return path;
 	
 }
 
 
-const mat3 m = mat3( 0.00,  0.80,  0.60,
+const mat3 m = mat3( -0.50,  0.80,  0.60,
                     -0.80,  0.36, -0.48,
                     -0.60, -0.48,  0.64 );
 
@@ -50,7 +51,7 @@ float cave( vec3 p )
     vec3 stalactites = vec3(6.0, 0.15, 6.0);
     if(p.y >-1.0){
 	
-		f += 0.7500 * clamp(0,1,(0.5+snoise( stalactites * p ))); p = m*p*3.06;
+		f += 0.7500 * clamp(0,1.6,(0.5+snoise( stalactites * p ))); p = m*p*3.06;
 		f += 0.5000 * gnoise( p ); p = m*p*2.02;
 		f += 0.2500 * noise( p ); p = m*p*2.04;
 		f += 0.1250 * gnoise( p ); p = m*p*2.01;
@@ -86,9 +87,9 @@ float calculateAO(vec3 p, vec3 n){
 
 float raymarchTerrain( in vec3 ro, in vec3 rd )
 {
-	float maxd = 20.0;
+	float maxd = 30.0;
     float t = 0.1;
-    for( int i = 0; i< 160; i++ )
+    for( int i = 0; i< 180; i++ )
     {
 	    float h = cave( ro + rd * t );
         if( h < (0.001 * t) || t > maxd ) break;
@@ -134,19 +135,19 @@ void main( )
     // camera	
 	float off = step( 0.001, iMouse.z )*6.0*iMouse.x/iResolution.x;
 	float time = off + 1.2 * iGlobalTime;
-	vec3 ro = path( time+0.0 );
+	vec3 ro = path( time-2.0 );
 	vec3 ta = path( time+1.6 );
     
-	//ta.y *= 0.35 + 0.25*sin(0.09*time);
+	ta.y *= 0.35 + 0.25*sin(0.09*time);
 	// camera2world transform
     mat3 cam = setCamera( ro, ta, 0.0 );
 
     // ray    
 	float r2 = p.x*p.x*0.32 + p.y*p.y;
-    p *= (7.0-sqrt(37.5-11.5*r2))/(r2+1.0);
+    p *= (7.0-sqrt(37.5-11.5*r2))/(r2+1.0); // cool shwobble effect
     vec3 rd = cam * normalize(vec3(p.xy,2.1));
 
-    vec3 col = vec3(0.0);
+    vec3 col =vec3(126,164,235)/255;
     
     // terrain	
 	float t = raymarchTerrain(ro, rd);
@@ -171,7 +172,8 @@ void main( )
 		col = texcube( tex0, 0.5*pos, nor ).xyz;
 		//col = vec3(1);
 		col = lin * col;
-        
+       
+		
         // water
         if(pos.y < -1.0) {
 		//TODO: Water movement
@@ -196,11 +198,21 @@ void main( )
 	col.r += 0.1*(1-gray);
 	col.b += 0.3*gray;
 	
+		// fog
+	// float tmax = 20.0;
+	// float factor = t/tmax;
+	// factor = clamp(factor, 0.0, 1.1);
+	// col = mix(col.rgb, (vec3(255,0,0)/255), factor);
+	
 	// fog
-	float tmax = 20.0;
-	float factor = t/tmax;
+	float tmax = 10.0;
+	float tmin = 5.5;
+	float factor = clamp((t-tmin)/tmax,0,1);
 	factor = clamp(factor, 0.0, 1.1);
-	col = mix(col.rgb, (vec3(126,164,235)/255), factor);
+	vec3 frontFogColor = vec3(184,134,11)/255;
+	vec3 backFogColor =	 vec3(126,164,235)/255;
+	vec3 fogColor = mix(frontFogColor,backFogColor,factor*1.1);
+	col = mix(col.rgb, fogColor, factor);
 	
 	
     // contrast, desat, tint and vignetting	
