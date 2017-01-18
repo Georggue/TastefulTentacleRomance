@@ -1,5 +1,7 @@
 // Modified version of the "Volcanic" shader by by inigo quilez - iq/2013
 // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+
+// #define DRUGS
 uniform vec2 iResolution;
 uniform vec3 iMouse;
 uniform float iGlobalTime;
@@ -52,6 +54,7 @@ float cave( vec3 p )
     if(p.y >-1.0){
 	
 		f += 0.7500 * clamp(0,1.6,(0.5+snoise( stalactites * p ))); p = m*p*3.06;
+		// f += 0.7500 * (0.5+snoise( stalactites * p )); p = m*p*3.06;
 		f += 0.5000 * gnoise( p ); p = m*p*2.02;
 		f += 0.2500 * noise( p ); p = m*p*2.04;
 		f += 0.1250 * gnoise( p ); p = m*p*2.01;
@@ -170,6 +173,11 @@ void main( )
         // surface shading/material	
         
 		col = texcube( tex0, 0.5*pos, nor ).xyz;
+		#ifdef DRUGS
+			col.b += sin(iGlobalTime)*cos(iGlobalTime);
+			col.r +=sin(iGlobalTime);
+			col.g +=cos(iGlobalTime);
+		#endif
 		//col = vec3(1);
 		col = lin * col;
        
@@ -183,6 +191,7 @@ void main( )
 			// pos.y += (sin(move.x) * cos(move.y)) * .05; //waves!
             // blue tint
          	col.b += 0.115;
+         	
             // darken when deep
             col *= pow(0.4, pos.y * pos.y);
         }
