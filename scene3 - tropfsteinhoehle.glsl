@@ -1,7 +1,7 @@
 // Modified version of the "Volcanic" shader by by inigo quilez - iq/2013
 // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 
-// #define DRUGS
+// #define YOSHI
 uniform vec2 iResolution;
 uniform vec3 iMouse;
 uniform float iGlobalTime;
@@ -42,27 +42,35 @@ const mat3 m = mat3( -0.50,  0.80,  0.60,
 float cave( vec3 p )
 {
 
-    float f = 0.0;
-    
-    vec3 s = 1.2 * vec3(sin(p.z * 0.32), cos(p.z * 0.77), 1.0);
-    
+    float f = 1.15;
+	float xGrowth = 1.0;
+	float yGrowth = 1.0;
+    #ifdef YOSHI
+		xGrowth = 0.0002*iGlobalTime;
+		yGrowth = 0.0003*iGlobalTime;		
+	#endif
+    vec3 s = 1.2 * vec3(sin(p.z * xGrowth*0.32), cos(p.z * 0.77*yGrowth), 1.0);    
     vec3 d = (path(p.z) - p) * s;
     float dist = length(d);
     f -= dist;
     
     vec3 stalactites = vec3(6.0, 0.15, 6.0);
-    if(p.y >-1.0){
+	f += 0.7500 * clamp((0.5*snoise( stalactites * p )),-2,-0.15); p = m*p*3.06;
+	if(p.y >-1.0){
 	//TODO: clamp as uniform for keyframes
-		f += 0.7500 * clamp(0,1.6,(0.5+snoise( stalactites * p ))); p = m*p*3.06;
-		// f += 0.7500 * (0.5+snoise( stalactites * p )); p = m*p*3.06;
-		f += 0.5000 * gnoise( p ); p = m*p*2.02;
-		f += 0.2500 * noise( p ); p = m*p*2.04;
-		f += 0.1250 * gnoise( p ); p = m*p*2.01;
-		f += 0.0625 * noise( p ); 
-	}else
-	{
-	
-		f += 0.7500 * clamp(0,1,(0.5+gnoise( stalactites * p ))); p = m*p*3.46;
+		// f += 1.1500;
+		    
+		f += 0.5000 * (0.5+snoise( stalactites * p )); p = m*p*3.06;
+		f += 0.2500 * gnoise( p ); p = m*p*2.02;
+		f += 0.1250 * noise( p ); p = m*p*2.04;
+		f += 0.0625 * gnoise( p ); p = m*p*2.01;
+		f += 0.03125 * noise( p ); 
+	}
+	else
+	{	
+		// f +=0.7;
+		// f += 0.7500 * clamp(0,1,(0.5+gnoise( stalactites * p ))); p = m*p*3.46;
+		// f += 0.7500 * (0.5+gnoise( stalactites * p )); p = m*p*3.46;
 		f += 0.5000 * gnoise( p ); p = m*p*1.02;
 		f += 0.2500 * noise( p ); p = m*p*1.04;
 		f += 0.1250 * gnoise( p ); p = m*p*1.01;
@@ -148,7 +156,7 @@ void main( )
     // ray    
 	float r2 = p.x*p.x*0.32 + p.y*p.y;
 	float shwobbliness = 1.0;
-	#ifdef DRUGS
+	#ifdef YOSHI
 		shwobbliness *=2;
 	#endif
     p *= (7.0-sqrt(37.5-11.5*r2))/(r2+shwobbliness); // cool shwobble effect
@@ -177,7 +185,7 @@ void main( )
         // surface shading/material	
         
 		col = texcube( tex0, 0.5*pos, nor ).xyz;
-		#ifdef DRUGS
+		#ifdef YOSHI
 			col.b += sin(iGlobalTime)*cos(iGlobalTime);
 			col.r +=sin(iGlobalTime);
 			col.g +=cos(iGlobalTime);
