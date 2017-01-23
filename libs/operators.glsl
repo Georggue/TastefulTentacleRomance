@@ -1,3 +1,6 @@
+float sPlane(vec3 point, vec3 normal, float d) {
+    return dot(point, normal) - d;
+}
 float maxComponent(vec3 v) {
 	return max(max(v.x, v.y), v.z);
 }
