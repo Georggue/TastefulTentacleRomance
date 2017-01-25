@@ -78,10 +78,16 @@ float cave( vec3 p )
 }
 float distWater(vec3 p)
 {
+	vec2 move = p.zx;
+	move -= vec2(iGlobalTime * 0.5, iGlobalTime * 0.2);
+	move *= 3;
+	p.y += ((sin(move.x)+noise(iGlobalTime)) * (cos(move.y)+noise(iGlobalTime*0.4))) * .05; //waves!
 	return sPlane(p,vec3(0,1,0),-1); 
 }
 float distField(vec3 p)
 {
+	if(!traceWater)
+		return cave(p);
 	return min(cave(p),distWater(p));
 }
 // Based on original by IQ.
@@ -100,17 +106,19 @@ float calculateAO(vec3 p, vec3 n){
 }
 
 
-float raymarchTerrain( vec3 ro, vec3 rd ,float t, float maxT, int maxSteps)
+float raymarchTerrain( vec3 ro, vec3 rd ,float t, float maxT, int maxSteps,out int iterations)
 {
 	// float maxd = 30.0;
     // float t = 0.1;
-    for( int i = 0; i< maxSteps; i++ )
+	int i = 0;
+    for(; i< maxSteps; i++ )
     {
 	    float h = distField( ro + rd * t );
         if( h < (0.001 * t) || t > maxT ) break;
         t += (step(h, 1.) * .05 + 0.1) * h;
+		
     }
-
+	iterations = i;
     if( t>maxT ) t=-1.0;
     return t;
 }
@@ -165,10 +173,20 @@ vec3 localShade(int id, vec3 point)
 	vec3 normal = getNormal(point, 0.01);
 	switch(id)
 	{
-		case idCave: return ambientDiffuse(texcube(tex0,point,normal), normal);
-		case idWater: return ambientDiffuse(vec3(1,0,0), normal);
-		
+		case idCave:
+		{
+			return ambientDiffuse(texcube(tex0,point,normal), normal);
+			break;
+		}
+		case idWater:
+		{
+			return ambientDiffuse(vec3(0,0.3,0.5), normal);
+			break;
+		}
+		default:
+			return -1;
 	}
+	
 }
 
 vec3 shade(int id, vec3 point, vec3 camDir)
@@ -178,12 +196,13 @@ vec3 shade(int id, vec3 point, vec3 camDir)
 	{
 		vec3 normal = getNormal(point, 0.01);
 		vec3 r = reflect(camDir, normal);
-		float t = raymarchTerrain(point, r, 0, 100, 100);
+		int blah = 0;
+		float t = raymarchTerrain(point, r, 0, 100, 100, blah);
 		if(0 < t)
 		{
 			vec3 point = point + t * camDir;
 			vec3 reflection = localShade(calculateID(point), point);
-			color += reflection;
+			color += 0.5*reflection;
 		}
 	}
 	return color;
@@ -191,24 +210,23 @@ vec3 shade(int id, vec3 point, vec3 camDir)
 
 vec3 calculateColors(vec3 ro, vec3 rd, float t,vec3 pos, vec3 normal)
 {
+	vec3 color = vec3(-1);
 	int id = calculateID(pos);
-	if(traceWater)
+	color = shade(id,pos,rd);
+	if(id == idWater)
 	{
-		if(id == idWater)
-		{
-			traceWater = false;
-			float nextT = raymarchTerrain(ro, rd, t, maxT, maxSteps);
-			float waterDepth = nextT - t;
-			float weight = clamp(waterDepth * 0.2, 0, 1);
-			vec3 nextPoint = ro + nextT * rd;
-			vec3 ground = calculateID(nextPoint);
-			return mix(ground, localShade(id,pos), weight);
-			// return ground;
-		}
-		else return localShade(id,pos);
+		traceWater = false; //ignore water plane in raymarch calculation
+		int blah = 0;
+		float waterT = raymarchTerrain(ro,rd,t,maxT,maxSteps, blah);
+		float waterDepth = waterT - t;
+		float weight = clamp(waterDepth * 0.5,0,1);
+		vec3 newPoint = ro + waterT * rd;
+		vec3 colorAtBottom = shade(calculateID(newPoint),newPoint,rd);
+		color = mix(colorAtBottom,color,weight);		
+		
 	}
-	else return localShade(id,pos);
-
+	// traceWater = true;  
+	return color;
 }
 void main( )
 {
@@ -241,14 +259,13 @@ void main( )
     vec3 col =vec3(126,164,235)/255;
     
     // terrain	
-	float t = raymarchTerrain(ro, rd,0,maxT,maxSteps);
+	int iterations;
+	float t = raymarchTerrain(ro, rd,0,maxT,maxSteps,iterations);
     if( t>0.0 )
 	{
 		vec3 pos = ro + t*rd;
 		vec3 nor = calcNormal( pos, t );
-		vec3 ref = reflect( rd, nor );
 	
-
         // lighting
 		float bac = clamp( abs(dot( nor, rd)), 0.0, 1.0 );
         
@@ -268,16 +285,14 @@ void main( )
 		#endif
 		//col = vec3(1);
 		col = lin * col;
-       
-		
-    
     
 		
     }
 	
 
     // gamma	
-	col = pow( clamp( col, 0.0, 1.0 ), vec3(0.365) );
+	col = pow( clamp( col, 0.0, 1.0 ), vec3(0.465) );
+	col += max(0., (exp(float(iterations)/float(maxSteps)))) * vec3(0.1);
 	
 	float gray = (col.r + col.r + col.b + col.g + col.g + col.g)/6;
 	// float gray =  0.21 *col.r + 0.72 *col.g + 0.07 *col.b;
