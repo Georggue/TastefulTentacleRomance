@@ -181,14 +181,16 @@ void main() {
 	color.b += 0.3*gray;
 	
 	// vignette
-	float innerRadius = .45;
-	float outerRadius = .65;
-	float intensity = .7;
-	vec3 vignetteColor = vec3(0);
 	vec2 relativePosition = gl_FragCoord.xy / iResolution -.5;
-	relativePosition.y *= iResolution.x / iResolution.y;
+	vec2 center = vec2(.5, .5); // center of screen
+	float distCenterUV = distance(center,relativePosition)*1.3;
+	float innerVig = 0.38;
+	float outerVig = .6;	
+	float intensity = .7;
+	// vec3 vignetteColor = vec3(37,39,68)/255;
+	vec3 vignetteColor = vec3(0);
 	float len = length(relativePosition);
-	float vignetteOpacity = smoothstep(innerRadius, outerRadius, len) * intensity;
+	float vignetteOpacity = smoothstep(innerVig, outerVig, len) * intensity;
 	color = mix(color, vignetteColor, vignetteOpacity);
 	
     gl_FragColor = vec4(color, 1.0);

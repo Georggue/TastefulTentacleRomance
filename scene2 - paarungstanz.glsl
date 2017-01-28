@@ -951,14 +951,25 @@ void main()
 	color = vec4(mix(color.rgb, (vec3(126,164,235)/255), factor),color.a);
 	
 	// vignette
-	float innerRadius = .45;
-	float outerRadius = .65;
-	float intensity = .7;
-	vec4 vignetteColor = vec4(vec3(37,39,68)/255,1);
+	// float innerRadius = .45;
+	// float outerRadius = .65;
+	// float intensity = .7;
+	// vec4 vignetteColor = vec4(vec3(37,39,68)/255,1);
+	// vec2 relativePosition = gl_FragCoord.xy / iResolution -.5;
+	// relativePosition.y *= iResolution.x / iResolution.y;
+	// float len = length(relativePosition);
+	// float vignetteOpacity = smoothstep(innerRadius, outerRadius, len) * intensity;
+	// color = mix(color, vignetteColor, vignetteOpacity);
 	vec2 relativePosition = gl_FragCoord.xy / iResolution -.5;
-	relativePosition.y *= iResolution.x / iResolution.y;
+	vec2 center = vec2(.5, .5); // center of screen
+	float distCenterUV = distance(center,relativePosition)*1.3;
+	float innerVig = 0.38;
+	float outerVig = .6;	
+	float intensity = .7;
+	vec4 vignetteColor = vec4((vec3(37,39,68)/255),1);
+	// vec3 vignetteColor = vec3(0);
 	float len = length(relativePosition);
-	float vignetteOpacity = smoothstep(innerRadius, outerRadius, len) * intensity;
+	float vignetteOpacity = smoothstep(innerVig, outerVig, len) * intensity;
 	color = mix(color, vignetteColor, vignetteOpacity);
 	
 	gl_FragColor = vec4(color);
