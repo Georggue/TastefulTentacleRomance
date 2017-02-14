@@ -845,17 +845,14 @@ Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
 	
 	if(objectHit)
 	{
-		rm.pointHit = vec4(point,1);
-		rm.rayDist = t;
-		return rm;
+		rm.pointHit = vec4(point,1);		
 	}
 	else
 	{
-		rm.pointHit = vec4(point,0);
-		rm.rayDist = t;
-		return rm;
-	}
-	
+		rm.pointHit = vec4(point,0);		
+	}	
+	rm.rayDist = t;
+	return rm;
 }
 // Raymarch TransparencyMarch(vec3 RayOrigin, vec3 RayDir, int iterations)
 void main()

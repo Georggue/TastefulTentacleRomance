@@ -119,35 +119,12 @@ vec3 grid(vec2 _st, float _zoom){
 	
 	_st.y += direction(_st.x)* move(iGlobalTime);
 	_st.x += direction(_st.y)* move(iGlobalTime+1);
-
-	// float tile = (stepFunction(4,5,_st.y))*mod(_st.x,2);
-	// float tile2 =(stepFunction(5,6,_st.x))*mod(_st.y,2);
-	 
-	// float tile3 = (stepFunction(6,7,_st.x))*mod(_st.y,2);
-	// float tile4 = (stepFunction(5,6,_st.y))*mod(_st.x,2);
-	
-	// float tile_1 = (stepFunction(4,5,_st.y))*mod(_st.x+1,2);
-	// float tile2_1 =(stepFunction(5,6,_st.x))*mod(_st.y+1,2);
-	 
-	// float tile3_1 = (stepFunction(6,7,_st.x))*mod(_st.y+1,2);
-	// float tile4_1 = (stepFunction(5,6,_st.y))*mod(_st.x+1,2);
 	
 	vec2 fractCoord = fract(_st);
 	//No additional noise for the heart -> looks too beautiful for this world
 	
 	vec3 col = heart(fractCoord);
 	
-	// float tileSum1 = tile + tile2 + tile3_1 + tile4_1;
-	// float tileSum2 = tile3 + tile4 + tile_1 + tile2_1;
-	// if(tileSum1  >= 1 && (tileSum2 <= 3))
-	// {
-		// col = texture2D(tex0,_st.xy).rgb ;
-		
-	// }	
-	// if(tileSum2 >=1 && (tileSum1 <= 3))
-	// {
-		// col = texture2D(tex1,_st.xy).rgb;
-	// }	
     return col;
 }
 void main() {
@@ -164,11 +141,14 @@ void main() {
 	coord01*=1.5;
 	coord01.x +=0.75;
 	coord01.y -=0.20;	
-	float Frequency = 50.0;
-	float Phase = iGlobalTime * 8.0;
+	//Y-Shwobble for Title
+	float Frequency = 15.0;
+	float Phase = iGlobalTime * 3.0;
 	float Amplitude = 0.035;
 	
 	coord01.y += fBm(coord01.x * Frequency  + Phase) * Amplitude;	
+	
+	//X-Shwobble for Title
 	Frequency = 25.0;
 	Phase = iGlobalTime * 4.0;
 	Amplitude = 0.01;
