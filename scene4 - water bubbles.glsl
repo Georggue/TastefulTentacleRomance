@@ -21,6 +21,11 @@ struct Material
 	float kAmbient;
 	int shininess;
 };
+Material glassMat;
+Material opaqueMat;
+const int idGlass = 0;
+const int idOpaque = 1;
+
 struct Light
 {
 	vec3 lightPos;
@@ -40,11 +45,26 @@ vec3 normalField(vec3 point){
 	// point = -opRepeat(point, vec3(3, 3, 3));
 	return sphereNormal(point, vec3(0, 0, 0));
 }
+
 float distSpheres(vec3 point)
 {
-	float a = sSphere(point, vec3(0, 0, 0), 0.3);
-	float b = sSphere(point, vec3(0.3, 0.4, 0), 0.3);
-	return smin(a,b,0.1);
+	float glassBall = sSphere(point,vec3(-0.3,0.3,1),0.3);
+	float a = sSphere(point, vec3(0, 0, 1.5), 0.3);
+	float b = sSphere(point, vec3(0.3, 0.4, 1), 0.3);
+	float dist = smin(a,b,0.1);
+	dist = smin(dist,glassBall,0.1);
+	return dist;
+}
+
+int idField(vec3 point)
+{
+	float glassBall = sSphere(point,vec3(-0.3,0.3,1),0.3);
+	float a = sSphere(point, vec3(0, 0, 1.5), 0.3);
+	float b = sSphere(point, vec3(0.3, 0.4, 1), 0.3);
+	float opaque = smin(a,b,0.1);
+	float dist = smin(opaque,glassBall,0.1);
+	if(dist == glassBall) return idGlass;
+	else return idOpaque;
 }
 float distField(vec3 point)
 {	
@@ -90,11 +110,7 @@ Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
 		return rm;
 	}	
 }
-  /*
-    vec3 lightPos;
-	vec3 color;
-	float kIntensity;
-  */
+
 void initLights()
 {
 	lights[0].lightPos = vec3(-10,10,-2);
@@ -112,14 +128,27 @@ void initLights()
 }
 void initMaterials()
 {
-	//TODO: Add materials
-	/*Material mat;
-	mat.col = vec4(0.3,0.3,0.3,1);
-	mat.kSpecular = 0.2;
-	mat.shininess = 128;
-	mat.kAmbient =  1.0;*/
+	glassMat.col=vec4(0.2,0.2,0.2,0.1);
+	glassMat.kSpecular = 0.8;
+	glassMat.kDiffuse = 0.5;
+	glassMat.kAmbient = 0.1;
+	glassMat.shininess = 128;
+	
+	opaqueMat.col = vec4(0.3,0.3,0.3,1);
+	opaqueMat.kSpecular = 0.2;
+	opaqueMat.shininess = 128;
+	opaqueMat.kAmbient =  1.0;
 }
-vec3 shade(vec3 pointHit,vec3 rayDirection)
+
+Material getMaterial(int id)
+{
+	switch(id)
+	{
+		case idGlass: return glassMat;
+		case idOpaque: return opaqueMat;		
+	}
+}
+vec4 shade(vec3 pointHit,vec3 rayDirection)
 {
 	vec3 normal = getNormal(pointHit, epsilon);
 	
@@ -128,11 +157,9 @@ vec3 shade(vec3 pointHit,vec3 rayDirection)
 	//TODO: get from Material
 	//mat = getMaterial(pointHit);
 	vec3 color = vec3(0);
-	Material mat;
-	mat.col = vec4(0.3,0.3,0.3,1);
-	mat.kSpecular = 0.2;
-	mat.shininess = 128;
-	mat.kAmbient =  1.0;
+	int id = idField(pointHit);
+	Material mat = getMaterial(id);
+	
 	for(int i=0;i<4;i++)
 	{
 		//Ambient light
@@ -145,12 +172,13 @@ vec3 shade(vec3 pointHit,vec3 rayDirection)
 		partColor += specular;
 		
 		color += partColor*lights[i].color;
-	}
-	return color;
+	}	
+	return vec4(color,mat.col.a);
 }
 void main()
 {
 	initLights();
+	initMaterials();
 	vec3 camP = calcCameraPos() ;//+ vec3(0, 0, -1);
 	vec3 camDir = calcCameraRayDir(80.0, gl_FragCoord.xy, iResolution);
 	camPosBall = camP;
@@ -165,11 +193,11 @@ void main()
 	if(rm.pointHit.a == 1)
 	{
 	//Pointlights with different colors, phong lighting
-	point = rm.pointHit.xyz;
-	vec3 color =shade(point,camDir);
+		point = rm.pointHit.xyz;
+
+		vec4 color =shade(point,camDir);		
 	
-	
-		gl_FragColor = vec4(color, 1);
+		gl_FragColor = color;
 	}
 	else
 	{
