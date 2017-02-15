@@ -49,20 +49,24 @@ vec3 normalField(vec3 point){
 float distSpheres(vec3 point)
 {
 	float glassBall = sSphere(point,vec3(-0.3,0.3,1),0.3);
+	float glassBallInterior = sSphere(point,vec3(-0.3,0.3,1),0.29);
+	glassBall = opDifference(glassBall,glassBallInterior);
 	float a = sSphere(point, vec3(0, 0, 1.5), 0.3);
 	float b = sSphere(point, vec3(0.3, 0.4, 1), 0.3);
 	float dist = smin(a,b,0.1);
-	dist = smin(dist,glassBall,0.1);
+	dist = min(dist,glassBall);
 	return dist;
 }
 
 int idField(vec3 point)
 {
 	float glassBall = sSphere(point,vec3(-0.3,0.3,1),0.3);
+	float glassBallInterior = sSphere(point,vec3(-0.3,0.3,1),0.29);
+	glassBall = opDifference(glassBall,glassBallInterior);
 	float a = sSphere(point, vec3(0, 0, 1.5), 0.3);
 	float b = sSphere(point, vec3(0.3, 0.4, 1), 0.3);
 	float opaque = smin(a,b,0.1);
-	float dist = smin(opaque,glassBall,0.1);
+	float dist = min(opaque,glassBall);
 	if(dist == glassBall) return idGlass;
 	else return idOpaque;
 }
@@ -189,14 +193,32 @@ void main()
 	//step along the ray 
 	Raymarch rm;
 	rm = rayMarch(camP,camDir);
-   
+	//TODO: sinnvolle werte überlegen Oo das hier ist bullshit
+   int maxTransparencyIterations = 50;
 	if(rm.pointHit.a == 1)
 	{
 	//Pointlights with different colors, phong lighting
 		point = rm.pointHit.xyz;
 
-		vec4 color =shade(point,camDir);		
-	
+		vec4 color =shade(point,camDir);				
+		if(color.a < 1.0)
+		{
+			for(int i=0;i<maxTransparencyIterations;i++)
+			{			
+				vec3 newPos = point + 5*epsilon*camDir;			
+				Raymarch transparencyMarch = rayMarch(newPos,camDir);
+				
+				if(transparencyMarch.pointHit.a == 1)
+				{
+					point = transparencyMarch.pointHit.xyz;
+					vec4 col = shade(point,camDir);
+					color.xyz += col.xyz*color.a;
+				}
+			
+			
+			}
+		}
+		
 		gl_FragColor = color;
 	}
 	else
