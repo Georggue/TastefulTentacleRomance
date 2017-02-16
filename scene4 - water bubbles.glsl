@@ -52,8 +52,8 @@ float glassBallDist(vec3 point, vec3 pos,float size)
 {
 	float wallThickness = 0.01;
 	float glassBall = sSphere(point,pos,size);
-	float glassBallInterior = sSphere(point,pos,size-wallThickness);
-	return opDifference(glassBall,glassBallInterior);
+	
+	return glassBall;
 	
 }
 float distSpheres(vec3 point)
@@ -64,7 +64,7 @@ float distSpheres(vec3 point)
 	glassBall = opUnion(glassBall,glassBall2);
 	float a = sSphere(point, vec3(0, 0, 1.5), 0.3);
 	float b = sSphere(point, vec3(0.3, 0.4, 1), 0.3);
-	float goldBall = sSphere(point, vec3(0.6,-0.3,1.2),.2);
+	float goldBall = sSphere(point, vec3(0.9,-0.3,1.2),.3);
 	float dist = smin(a,b,0.1);
 	dist = min(dist,goldBall);
 	dist = min(dist,glassBall);
@@ -79,7 +79,7 @@ int idField(vec3 point)
 	glassBall = opUnion(glassBall,glassBall2);
 	float a = sSphere(point, vec3(0, 0, 1.5), 0.3);
 	float b = sSphere(point, vec3(0.3, 0.4, 1), 0.3);
-	float goldBall = sSphere(point, vec3(0.6,-0.3,1.2),.2);
+	float goldBall = sSphere(point, vec3(0.9,-0.3,1.2),.3);
 	float opaque = smin(a,b,0.1);
 	float dist = min(opaque,glassBall);
 	dist = min(dist,goldBall);
@@ -214,15 +214,32 @@ vec4 shade(vec3 pointHit,vec3 rayDirection, out Material mat)
 	}	
 	return vec4(color,mat.ambientColor.a);
 }
+vec4 calcTransparency(vec3 pointHit, vec3 rayDirection,vec4 originalColor, float alpha)
+{
+	//0.6 = sphereDiameter, massive hack. In theory: go into object, find other side, exit object, trace again. In practice? WTF
+	vec3 newOrigin = pointHit+((0.6+epsilon)*rayDirection);
+	//We need to go DEEPER!
+	Raymarch transparencyMarch = rayMarch(newOrigin,rayDirection);
+					
+	if(transparencyMarch.pointHit.a == 1.0)
+	{
+		// material *= calculateColors(FRIDOLIN,transparencyMarch.pointHit.xyz)*material.a;
+		Material mat;
+		vec4 col = shade(transparencyMarch.pointHit.xyz,rayDirection,mat);
+		originalColor.rgb = ( originalColor.rgb * originalColor.a) + ((1- originalColor.a)*col.rgb);
+	}
+	
+	return originalColor;
+}
 vec4 calcTransparency(vec3 pointHit, vec3 rayDirection,float alpha)
 {
-		float wallThickness = 0.03+epsilon;
+		// float wallThickness = epsilon;
 	    int maxTransparencyIterations = 3;
 		vec4 col = vec4(0);
 		
 		for(int i=0;i<maxTransparencyIterations;i++)
 			{			
-				vec3 newPos = pointHit + (wallThickness)*rayDirection;			
+				vec3 newPos = pointHit + epsilon*rayDirection;			
 				Raymarch transparencyMarch = rayMarch(newPos,rayDirection);
 				
 				if(transparencyMarch.pointHit.a == 1)
@@ -268,7 +285,7 @@ vec4 calcReflection(vec3 firstHit, vec3 firstRayDir)
 float fresnel(vec3 rayDirection, vec3 normal, float refractionIndex)
 {
 	float kr = 0;
-	float cosi = clamp(-1, 1, dot(rayDirection, normal)); 
+	float cosi = clamp(dot(rayDirection, normal),-1, 1); 
     float etai = 1, etat = refractionIndex; 
     if (cosi > 0) {
 		float tmp;
@@ -346,8 +363,9 @@ void main()
 		//Transparency
 		if(color.a < 1.0)
 		{
-			color += calcTransparency(point,camDir,color.a);	
-			color += calcRefraction(rm.pointHit.xyz,camDir,mat.refractiveIndex);			
+			color = calcTransparency(point,camDir,color,color.a);	
+			color += calcReflection(rm.pointHit.xyz,camDir);
+			// color += calcRefraction(rm.pointHit.xyz,camDir,mat.refractiveIndex);			
 		}else
 		{		
 			color += calcReflection(rm.pointHit.xyz,camDir);
