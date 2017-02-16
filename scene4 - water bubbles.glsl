@@ -5,12 +5,17 @@
 uniform vec2 iResolution;
 uniform float iGlobalTime;
 const float epsilon = 0.0001;
-const int maxSteps = 64;
+const int maxSteps = 640;
 vec3 camPosBall;
+
+const int maxRefractions = 4;
+const int maxReflections = 4;
 
 struct Raymarch
 {
 	vec4 pointHit;
+	vec3 rayDirection;
+	vec3 rayOrigin;
 	float rayDist;
 };
 struct Material
@@ -20,7 +25,9 @@ struct Material
 	vec3 kDiffuse;
 	float reflectiveIndex;
 	float refractiveIndex;
+	float transparency;
 	int shininess;
+	
 };
 Material glassMat;
 Material opaqueMat;
@@ -48,19 +55,12 @@ vec3 normalField(vec3 point){
 	// point = -opRepeat(point, vec3(3, 3, 3));
 	return sphereNormal(point, vec3(0, 0, 0));
 }
-float glassBallDist(vec3 point, vec3 pos,float size)
-{
-	float wallThickness = 0.01;
-	float glassBall = sSphere(point,pos,size);
-	
-	return glassBall;
-	
-}
+
 float distSpheres(vec3 point)
 {
 	// point = opRepeat(point,vec3(5));
-	float glassBall = glassBallDist(point,vec3(-0.3,0.3,1),0.3);
-	float glassBall2 = glassBallDist(point,vec3(0.3,-0.4,1),0.3);
+	float glassBall = sSphere(point,vec3(-0.3,0.3,1),0.3);
+	float glassBall2 = sSphere(point,vec3(0.3,-0.4,1),0.3);
 	glassBall = opUnion(glassBall,glassBall2);
 	float a = sSphere(point, vec3(0, 0, 1.5), 0.3);
 	float b = sSphere(point, vec3(0.3, 0.4, 1), 0.3);
@@ -74,8 +74,8 @@ float distSpheres(vec3 point)
 int idField(vec3 point)
 {
 	// point = opRepeat(point,vec3(5));
-	float glassBall = glassBallDist(point,vec3(-0.3,0.3,1),0.3);
-	float glassBall2 = glassBallDist(point,vec3(0.3,-0.4,1),0.3);
+	float glassBall = sSphere(point,vec3(-0.3,0.3,1),0.3);
+	float glassBall2 = sSphere(point,vec3(0.3,-0.4,1),0.3);
 	glassBall = opUnion(glassBall,glassBall2);
 	float a = sSphere(point, vec3(0, 0, 1.5), 0.3);
 	float b = sSphere(point, vec3(0.3, 0.4, 1), 0.3);
@@ -97,6 +97,8 @@ Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
 	vec3 point = rayOrigin; 	
 	bool objectHit = false;
 	Raymarch rm;
+	rm.rayOrigin = rayOrigin;
+	rm.rayDirection = rayDirection;
 	float t = 0.0;
 	
 	//step along the ray 	
@@ -105,36 +107,36 @@ Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
     {
 		//check how far the point is from the nearest surface
        	float dist = distField(point);
-		 			
-		//if we are very close
-        if(epsilon > dist)
-        {
-			objectHit = true;
-            break;
-        }
-		//not so close -> we can step at least dist without hitting anything
-        t += dist;
-		//calculate new point
-        point = rayOrigin + t * rayDirection;
+		
+			//if we are very close
+			if(abs(dist) < epsilon)
+			{
+				objectHit = true;
+				break;
+			}
+			//not so close -> we can step at least dist without hitting anything
+			t += abs(dist);
+			//calculate new point
+			point = rm.rayOrigin + t * rm.rayDirection; 			
+		
     }
 	
 	if(objectHit)
 	{
 		rm.pointHit = vec4(point,1);
-		rm.rayDist = t;
-		return rm;
+		
 	}
 	else
 	{
-		rm.pointHit = vec4(point,0);
-		rm.rayDist = t;
-		return rm;
+		rm.pointHit = vec4(point,0);		
 	}	
+	rm.rayDist = t;
+	return rm;
 }
 
 void initLights()
 {
-	lights[0].lightPos = vec3(-10,10,-2);
+	lights[0].lightPos = vec3(0,0,-1);
 	// lights[0].color = vec3(1,0,0);
 	lights[0].color = vec3(1);
 	lights[0].kIntensity = 0.3;
@@ -157,8 +159,9 @@ void initMaterials()
 	glassMat.kSpecular = vec3(0.8);
 	glassMat.kDiffuse = vec3(0.5);
 	glassMat.shininess = 128;
-	glassMat.refractiveIndex = 1.5;
+	glassMat.refractiveIndex = 1.1;
 	glassMat.reflectiveIndex = 0.8;
+	glassMat.transparency = 1.0;
 	
 	opaqueMat.ambientColor = vec4(0.0,0.05,0.05,1);	
 	opaqueMat.kDiffuse = vec3(0.4,0.5,0.5);
@@ -167,6 +170,7 @@ void initMaterials()
 	opaqueMat.shininess = int(.078125 * 128);	
 	opaqueMat.refractiveIndex = 0.0;
 	opaqueMat.reflectiveIndex = 0.05;
+	opaqueMat.transparency = 0.0;
 	
 	goldMat.ambientColor=vec4(0.24725,0.1995,0.0745,1);
 	goldMat.kDiffuse = vec3(0.75164,0.60648,0.22648);
@@ -174,6 +178,7 @@ void initMaterials()
 	goldMat.shininess = int(0.4*128);
 	goldMat.refractiveIndex = 0.0;	
 	goldMat.reflectiveIndex = 0.6;
+	goldMat.transparency = 0.0;
 }
 
 Material getMaterial(int id)
@@ -187,10 +192,12 @@ Material getMaterial(int id)
 }
 vec3 getAmbient()
 {
-	return vec3(0.1);
+	return vec3(0.0,.0,0.2);
 }
 vec4 shade(vec3 pointHit,vec3 rayDirection, out Material mat)
 {
+	//return vec4(vec3(1.,0.,0.),mat.ambientColor.a);
+	
 	vec3 normal = getNormal(pointHit, epsilon);
 	
 	vec3 backgroundColor = getAmbient();
@@ -254,10 +261,11 @@ vec4 calcTransparency(vec3 pointHit, vec3 rayDirection,float alpha)
 }
 vec4 calcReflection(vec3 firstHit, vec3 firstRayDir)
 {
-		int maxReflections = 2;
+		// int maxReflections = 2;
 		vec3 pointHit = firstHit + (getNormal(firstHit,epsilon)*epsilon);
 		Material mat = getMaterial(idField(pointHit));
 		vec4 col = vec4(0);
+		
 		for(int i=0;i<maxReflections;i++)
 		{			
 			
@@ -312,31 +320,112 @@ float fresnel(vec3 rayDirection, vec3 normal, float refractionIndex)
 }
 vec4 calcRefraction(vec3 firstHit, vec3 firstRayDir, float refractiveIndex)
 {
-	vec4 col = vec4(0);
-	vec3 refractionColor = vec3(0); 
-        // compute fresnel
-	vec3 normal = getNormal(firstHit,epsilon);
-	float kr = fresnel(firstRayDir, normal, refractiveIndex); 
-	bool outside = dot(firstRayDir,normal) < 0; 
-	vec3 bias = epsilon * normal; 
-	// compute refraction if it is not a case of total internal reflection
-	if (kr < 1) { 
-		vec3 refractionDirection = normalize(refract(firstRayDir, normal, refractiveIndex)); 
-		vec3 refractionRayOrig = outside ? firstHit - bias : firstHit + bias; 
-		Raymarch refractionRay = rayMarch(refractionRayOrig,refractionDirection);
-		if(refractionRay.pointHit.a == 1)
+		vec4 col = vec4(0);
+		vec3 refractionColor = vec3(0); 
+        // compute fresnel		
+		vec3 hitPoint = firstHit;
+		vec3 rayDir = firstRayDir;
+		for(int i=0;i<maxRefractions;i++)
 		{
-			Material dummy;
-			refractionColor = shade(refractionRay.pointHit.xyz,refractionDirection,dummy).xyz;
-		}           
-	} 
-	vec4 reflectionCol = calcReflection(firstHit,firstRayDir);
+			vec3 normal = getNormal(hitPoint,epsilon);
+			// float kr = fresnel(rayDir, normal, refractiveIndex); 
+			bool outside = dot(rayDir,normal) < 0; 		
+			vec3 bias = vec3(0);
+			// compute refraction if it is not a case of total internal reflection
+			// if (kr < 1) { 
+				vec3 refractionDirection = normalize(refract(rayDir, normal, !outside ? refractiveIndex : 1/refractiveIndex)); 
+				vec3 refractionRayOrig = outside ? hitPoint - bias : hitPoint + bias; 
+				Raymarch refractionRay = rayMarch(refractionRayOrig,refractionDirection);
+				if(refractionRay.pointHit.a == 1)
+				{
+					Material dummy;
+					refractionColor = shade(refractionRay.pointHit.xyz,refractionDirection,dummy).xyz;
+				}        
+				else
+				{	
+					refractionColor = vec3(1,0,0);
+				}   
+			// } 
+			// vec4 reflectionCol = calcReflection(firstHit,firstRayDir);
+			
+			col.xyz += refractionColor.xyz ; 
+			hitPoint = refractionRay.pointHit.xyz;
+			rayDir = refractionDirection;
+		}
 	
-	col.xyz += reflectionCol.xyz * kr + refractionColor.xyz * (1 - kr); 
        
 	return col;
 }
-
+mat4 rotationMatrix(vec3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    
+    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                0.0,                                0.0,                                0.0,                                1.0);
+}
+vec3 refractMe(vec3 I, vec3 N, float ior)
+{
+	float cosi = clamp(dot(I, N),-1, 1);
+	float etai = 1, etat = ior;
+	vec3 n = N;
+	if (cosi < 0) { cosi = -cosi; } 
+	else 
+	{
+		float tmp;
+		tmp = etai;
+		etai = etat;
+		etat = tmp;		
+		n= -N; 
+	}
+	float eta = etai / etat;
+	float k = 1 - eta * eta * (1 - cosi * cosi);
+	return (k < 0.) ? vec3(0.) : (eta * I + (eta * cosi - sqrt(k)) * n);
+} 
+vec4 render(Raymarch rm)
+{	
+	vec4 hitPoint = rm.pointHit;
+	vec3 rayDir = rm.rayDirection;
+	vec4 color = vec4(0.,0.,0.,1.);	
+	for(int i=0;i<maxRefractions;i++)
+	{
+		if(hitPoint.a == 1.0)
+		{
+			Material mat = getMaterial(idField(hitPoint.xyz));
+			if(mat.transparency < epsilon)
+			{	
+				color.xyz += shade(hitPoint.xyz,rayDir,mat).xyz + calcReflection(hitPoint.xyz,rayDir.xyz).rgb;					
+				break;
+			}
+			 //else
+				 //color.xyz += vec3(0.,0.,1.);
+			
+			
+			vec3 normal = getNormal(hitPoint.xyz,epsilon); 
+			bool outside = dot(rayDir,normal) < 0;
+			
+			vec3 refractionDirection = refractMe(rayDir, outside ? normal : -normal, mat.refractiveIndex); 
+			vec3 bias = 2.*epsilon*normal;
+			vec3 refractionRayOrig = outside ? hitPoint.xyz - bias : hitPoint.xyz + bias; 
+			Raymarch refractionRay = rayMarch(refractionRayOrig, refractionDirection);
+			
+		
+			hitPoint = refractionRay.pointHit;
+			rayDir = refractionDirection;
+		}	
+		else if(i == maxRefractions-1)
+		{
+			color.xyz += getAmbient();
+		}
+		
+	}
+	return color+ calcReflection(rm.pointHit.xyz,rm.rayDirection.xyz);
+	
+}
 void main()
 {
 	initLights();
@@ -346,36 +435,16 @@ void main()
 	camPosBall = camP;
 	//start point is the camera position
 	vec3 point = camP; 	
-	bool objectHit = false;
 	float t = 0.0;
 	//step along the ray 
 	Raymarch rm;
+	
 	rm = rayMarch(camP,camDir);
 	
-	if(rm.pointHit.a == 1)
-	{		
-		
+	vec4 col = render(rm);
 	//Pointlights with different colors, phong lighting
-		point = rm.pointHit.xyz;
-		Material mat;
-		vec4 color = shade(point,camDir,mat);
-		
-		//Transparency
-		if(color.a < 1.0)
-		{
-			color = calcTransparency(point,camDir,color,color.a);	
-			color += calcReflection(rm.pointHit.xyz,camDir);
-			// color += calcRefraction(rm.pointHit.xyz,camDir,mat.refractiveIndex);			
-		}else
-		{		
-			color += calcReflection(rm.pointHit.xyz,camDir);
-		}	
-			
-		
-		gl_FragColor = color;
-	}
-	else
-	{
-		gl_FragColor = vec4(0, 0, 0, 1);
-	}
+	
+	
+	gl_FragColor = col;
+
 }
