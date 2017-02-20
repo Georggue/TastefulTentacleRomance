@@ -1,14 +1,15 @@
 #version 330
 #include "/libs/camera.glsl"
 #include "/libs/operators.glsl"
-#define PI 3.14159265358979323846
+#include "/libs/hg_sdf.glsl"
+// #define PI 3.14159265358979323846
 uniform vec2 iResolution;
 uniform float iGlobalTime;
 const float epsilon = 0.0001;
-const int maxSteps = 640;
+const int maxSteps = 128;
 vec3 camPosBall;
 
-const int maxRefractions = 4;
+const int maxRefractions = 5;
 const int maxReflections = 4;
 
 struct Raymarch
@@ -32,10 +33,11 @@ struct Material
 Material glassMat;
 Material opaqueMat;
 Material goldMat;
-
+Material floorMat;
 const int idGlass = 0;
 const int idOpaque = 1;
 const int idGold = 2;
+const int idFloor = 3;
 struct Light
 {
 	vec3 lightPos;
@@ -51,13 +53,10 @@ vec3 sphereNormal(vec3 M, vec3 P)
 	return normalize(P - M);
 }
 
-vec3 normalField(vec3 point){
-	// point = -opRepeat(point, vec3(3, 3, 3));
-	return sphereNormal(point, vec3(0, 0, 0));
-}
 
 float distSpheres(vec3 point)
 {
+	float plane = fPlane(point,vec3(0,1,0),1);
 	// point = opRepeat(point,vec3(5));
 	float glassBall = sSphere(point,vec3(-0.3,0.3,1),0.3);
 	float glassBall2 = sSphere(point,vec3(0.3,-0.4,1),0.3);
@@ -68,11 +67,13 @@ float distSpheres(vec3 point)
 	float dist = smin(a,b,0.1);
 	dist = min(dist,goldBall);
 	dist = min(dist,glassBall);
+	dist = min(dist,plane);
 	return dist;
 }
 
 int idField(vec3 point)
 {
+	float plane = fPlane(point,vec3(0,1,0),1);
 	// point = opRepeat(point,vec3(5));
 	float glassBall = sSphere(point,vec3(-0.3,0.3,1),0.3);
 	float glassBall2 = sSphere(point,vec3(0.3,-0.4,1),0.3);
@@ -83,12 +84,15 @@ int idField(vec3 point)
 	float opaque = smin(a,b,0.1);
 	float dist = min(opaque,glassBall);
 	dist = min(dist,goldBall);
+	dist = min(dist,plane);
 	if(dist == glassBall) return idGlass;
 	else if(dist == goldBall) return idGold;
+	else if(dist == plane) return idFloor;
 	else return idOpaque;
 }
 float distField(vec3 point)
 {	
+
 	return distSpheres(point);
 }
 Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
@@ -136,18 +140,21 @@ Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
 
 void initLights()
 {
-	lights[0].lightPos = vec3(0,0,-1);
+	lights[0].lightPos = vec3(0,0,-2);
 	// lights[0].color = vec3(1,0,0);
 	lights[0].color = vec3(1);
 	lights[0].kIntensity = 0.3;
+	
 	lights[1].lightPos = vec3(10,10,-2);
 	// lights[1].color = vec3(0,1,0);
 	lights[1].color = vec3(1);
 	lights[1].kIntensity = 0.2;
+	
 	lights[2].lightPos = vec3(-10,-10,-2);
 	// lights[2].color = vec3(0,0,1);
 	lights[2].color = vec3(1);
 	lights[2].kIntensity = 0.3;
+	
 	lights[3].lightPos = vec3(10,-10,-2);
 	// lights[3].color = vec3(1,1,0);
 	lights[3].color = vec3(1);
@@ -179,6 +186,14 @@ void initMaterials()
 	goldMat.refractiveIndex = 0.0;	
 	goldMat.reflectiveIndex = 0.6;
 	goldMat.transparency = 0.0;
+	
+	floorMat.ambientColor = vec4(1.);
+	floorMat.kDiffuse=vec3(0.5);
+	floorMat.kSpecular =vec3(0.0);
+	floorMat.shininess = 1;
+	floorMat.refractiveIndex = 0.0;
+	floorMat.reflectiveIndex = 0.0;
+	floorMat.transparency = 0.0;
 }
 
 Material getMaterial(int id)
@@ -188,11 +203,35 @@ Material getMaterial(int id)
 		case idGlass: return glassMat;
 		case idOpaque: return opaqueMat;	
 		case idGold: return goldMat;
+		case idFloor: return floorMat;			
 	}
 }
 vec3 getAmbient()
 {
-	return vec3(0.0,.0,0.2);
+	return vec3(0.0,.0,0.0);
+}
+float calcDiffuse(vec3 lightDir,vec3 normal)
+{
+	return max(0, dot(normalize(lightDir), normal));
+}
+
+float calcSpecular(vec3 lightDir, vec3 rayDir,vec3 normal, int shininess)
+{
+	return ((shininess + 2)/(2*PI)) * pow(max(0,dot(reflect(normalize(lightDir),normal),rayDir)),shininess);
+}
+
+float softshadow(vec3 origin, vec3 dir, float mint, float maxt, float k )
+{
+    float res = 1.0;
+    for( float t = mint; t < maxt; )
+    {
+        float h = distField(origin + dir * t);
+        if( h < epsilon )
+            return 0.0;
+        res = min( res, k*h/t );
+        t += h;
+    }
+    return res;
 }
 vec4 shade(vec3 pointHit,vec3 rayDirection, out Material mat)
 {
@@ -210,58 +249,22 @@ vec4 shade(vec3 pointHit,vec3 rayDirection, out Material mat)
 	{
 		//Ambient light
 		vec3 partColor = mat.ambientColor.rgb * backgroundColor;
+		float shadow = max(0.2,softshadow(pointHit,lights[i].lightPos-pointHit,0.1,20.,2.));	
 		//Diffuse
-		float diffuse = max(0, dot(normalize(lights[i].lightPos - pointHit), normal));
+		float diffuse = shadow*calcDiffuse(lights[i].lightPos - pointHit, normal);
 		partColor += mat.ambientColor.rgb * diffuse*mat.kDiffuse;
 		//Specular
-		vec3 specular = lights[i].kIntensity * mat.kSpecular * ((mat.shininess + 2)/(2*PI)) * pow(max(0,dot(reflect(normalize(lights[i].lightPos - pointHit),normal),rayDirection)),mat.shininess);
+		vec3 specular = lights[i].kIntensity * mat.kSpecular * calcSpecular(lights[i].lightPos-pointHit,rayDirection,normal,mat.shininess);
 		partColor += specular;
 		
 		color += partColor*lights[i].color;
+				
 	}	
 	return vec4(color,mat.ambientColor.a);
 }
-vec4 calcTransparency(vec3 pointHit, vec3 rayDirection,vec4 originalColor, float alpha)
-{
-	//0.6 = sphereDiameter, massive hack. In theory: go into object, find other side, exit object, trace again. In practice? WTF
-	vec3 newOrigin = pointHit+((0.6+epsilon)*rayDirection);
-	//We need to go DEEPER!
-	Raymarch transparencyMarch = rayMarch(newOrigin,rayDirection);
-					
-	if(transparencyMarch.pointHit.a == 1.0)
-	{
-		// material *= calculateColors(FRIDOLIN,transparencyMarch.pointHit.xyz)*material.a;
-		Material mat;
-		vec4 col = shade(transparencyMarch.pointHit.xyz,rayDirection,mat);
-		originalColor.rgb = ( originalColor.rgb * originalColor.a) + ((1- originalColor.a)*col.rgb);
-	}
-	
-	return originalColor;
-}
-vec4 calcTransparency(vec3 pointHit, vec3 rayDirection,float alpha)
-{
-		// float wallThickness = epsilon;
-	    int maxTransparencyIterations = 3;
-		vec4 col = vec4(0);
-		
-		for(int i=0;i<maxTransparencyIterations;i++)
-			{			
-				vec3 newPos = pointHit + epsilon*rayDirection;			
-				Raymarch transparencyMarch = rayMarch(newPos,rayDirection);
-				
-				if(transparencyMarch.pointHit.a == 1)
-				{
-					Material dummy;
-					pointHit = transparencyMarch.pointHit.xyz;
-					vec4 tempCol = shade(pointHit,rayDirection,dummy);
-					col.xyz += tempCol.xyz*alpha;
-				}			
-			}
-			return col;
-}
+
 vec4 calcReflection(vec3 firstHit, vec3 firstRayDir)
-{
-		// int maxReflections = 2;
+{		
 		vec3 pointHit = firstHit + (getNormal(firstHit,epsilon)*epsilon);
 		Material mat = getMaterial(idField(pointHit));
 		vec4 col = vec4(0);
@@ -290,7 +293,8 @@ vec4 calcReflection(vec3 firstHit, vec3 firstRayDir)
 		}
 		return col;
 }
-float fresnel(vec3 rayDirection, vec3 normal, float refractionIndex)
+
+/*float fresnel(vec3 rayDirection, vec3 normal, float refractionIndex)
 {
 	float kr = 0;
 	float cosi = clamp(dot(rayDirection, normal),-1, 1); 
@@ -355,7 +359,9 @@ vec4 calcRefraction(vec3 firstHit, vec3 firstRayDir, float refractiveIndex)
 	
        
 	return col;
-}
+}*/
+
+
 mat4 rotationMatrix(vec3 axis, float angle)
 {
     axis = normalize(axis);
@@ -398,7 +404,8 @@ vec4 render(Raymarch rm)
 			Material mat = getMaterial(idField(hitPoint.xyz));
 			if(mat.transparency < epsilon)
 			{	
-				color.xyz += shade(hitPoint.xyz,rayDir,mat).xyz + calcReflection(hitPoint.xyz,rayDir.xyz).rgb;					
+				color.xyz += shade(hitPoint.xyz,rayDir,mat).xyz + calcReflection(hitPoint.xyz,rayDir.xyz).rgb;		
+
 				break;
 			}
 			 //else
@@ -416,6 +423,19 @@ vec4 render(Raymarch rm)
 		
 			hitPoint = refractionRay.pointHit;
 			rayDir = refractionDirection;
+			
+			// for(int i=0;i<4;i++)
+			// {
+				// Raymarch shadowRay;
+				// shadowRay = rayMarch(hitPoint.xyz,lights[i].lightPos-hitPoint.xyz);
+				// if(shadowRay.pointHit.a == 1.)
+				// {
+					// color.xyz+=getAmbient();
+					// float shadow = max(0.2,softshadow(shadowRay.pointHit.xyz,lights[i].lightPos-shadowRay.pointHit.xyz,0.1,10.,20.));	
+					// color.xyz *= shadow;
+				// }
+			// }
+			
 		}	
 		else if(i == maxRefractions-1)
 		{
