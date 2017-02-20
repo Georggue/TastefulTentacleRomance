@@ -1,5 +1,5 @@
 #version 330
-#include "/libs/camera.glsl"
+// #include "/libs/camera.glsl"
 #include "/libs/operators.glsl"
 #include "/libs/hg_sdf.glsl"
 // #define PI 3.14159265358979323846
@@ -14,8 +14,8 @@ const float epsilon = 0.0001;
 const int maxSteps = 256;
 vec3 camPosBall;
 
-const int maxRefractions = 10;
-const int maxReflections = 2;
+const int maxRefractions = 8;
+const int maxReflections = 1 ;
 
 struct Raymarch
 {
@@ -39,11 +39,13 @@ Material glassMat;
 Material opaqueMat;
 Material goldMat;
 Material floorMat;
+Material pearlMat;
 const int idGlass = 0;
 const int idOpaque = 1;
 const int idGold = 2;
 const int idFloor = 3;
 const int idClam = 4;
+const int idPearl = 5;
 struct Light
 {
 	vec3 lightPos;
@@ -69,14 +71,14 @@ vec3 rotateX(vec3 point, float angle)
 // Das ist meine Mupfel!
 float distClam(vec3 point)
 {
-	
+	float angleMupfel = 1 + sin(iGlobalTime+3);
 	// vec3 clamPointUpper = vec3(0,-0.3,0);
 	// clamPointUpper.z+=0.25;
 	vec3 upperClamPoint = point;
 	upperClamPoint = rotateX(upperClamPoint,PI);
 	upperClamPoint.z +=.55;
 	upperClamPoint.y -=.2;
-	upperClamPoint = rotateX(upperClamPoint,angle);
+	upperClamPoint = rotateX(upperClamPoint,angleMupfel);
 	upperClamPoint.z -=.55;
 	upperClamPoint.y-=.1;
 	
@@ -113,6 +115,14 @@ float distClam(vec3 point)
 float glassBallSize = 0.1;
 float distSpheres(vec3 point)
 {
+	vec3 babyBubblePoint = point;
+	babyBubblePoint.x += 1.;
+	babyBubblePoint.y += sin(point.z - iGlobalTime * 2.0) * cos(point.x - iGlobalTime) * .25; //waves!
+	// babyBubblePoint.z += 3.0;
+	babyBubblePoint = opRepeat(babyBubblePoint,vec3(2,0,2));
+	float babyGold = sSphere(babyBubblePoint,vec3(0),0.1);
+	
+	// point+=vec3(2.5,0,0);
 	point = opRepeat(point,vec3(6,0,0));
 	vec3 clamPoint = point;
 	// clamPoint = opRepeat(clamPoint,vec3(5,0,0));
@@ -130,11 +140,16 @@ float distSpheres(vec3 point)
 	glassBallPoint.x += 2.;
 	glassBallPoint.z += 1.;
 	
-	float scale = 2 / (3 - cos(2*iGlobalTime));
-	float x = scale * cos(iGlobalTime);
-	float y = scale * sin(2*iGlobalTime) / 2;
+	float scale = 2 / (3 - cos(0.5*2*iGlobalTime));
+	float x = scale * cos(0.5*iGlobalTime);
+	float y = scale * sin(0.5*2*iGlobalTime) / 2;
+	float glassBall = sSphere(glassBallPoint+vec3(0,y,x),vec3(0),.5);
 	
-	float glassBall = sSphere(glassBallPoint+vec3(0,y,x),vec3(0),.7);
+	vec3 glassBallPoint2 = point;
+	glassBallPoint2.x += 2.;
+	glassBallPoint2.z += 1.;
+	float glassBall2 = sSphere(glassBallPoint2+vec3(0,-y,-x),vec3(0),.5);
+	glassBall = smin(glassBall,glassBall2,0.3);
 
 	float goldPearl = sSphere(clamPoint+vec3(0,-0.3+sin(iGlobalTime)/10,0), vec3(0.25,-0.3,0),.3);
 	float goldPearl2 = sSphere(clamPoint2+vec3(0,-0.3+sin(iGlobalTime)/10,0), vec3(0.25,-0.3,0.),.3);
@@ -147,11 +162,19 @@ float distSpheres(vec3 point)
 	float clam2 =distClam(clamPoint2);
 	dist = min(dist,clam);
 	dist = min(dist,clam2);	
+	dist = min(dist,babyGold);
 	return dist;
 }
 
 int idField(vec3 point)
 {
+	vec3 babyBubblePoint = point;
+	babyBubblePoint.x += 1.;
+	babyBubblePoint.y += sin(point.z - iGlobalTime * 2.0) * cos(point.x - iGlobalTime) * .25; //waves!
+	// babyBubblePoint.z += 3.0;
+	babyBubblePoint = opRepeat(babyBubblePoint,vec3(2,0,2));
+	float babyGold = sSphere(babyBubblePoint,vec3(0),0.1);
+	// point+=vec3(2.5,0,0);
 	point = opRepeat(point,vec3(6,0,0));
 	vec3 clamPoint = point;
 	
@@ -169,11 +192,16 @@ int idField(vec3 point)
 	glassBallPoint.x += 2.;
 	glassBallPoint.z += 1.;
 	
-	float scale = 2 / (3 - cos(2*iGlobalTime));
-	float x = scale * cos(iGlobalTime);
-	float y = scale * sin(2*iGlobalTime) / 2;
+	float scale = 2 / (3 - cos(0.5*2*iGlobalTime));
+	float x = scale * cos(0.5*iGlobalTime);
+	float y = scale * sin(0.5*2*iGlobalTime) / 2;
+	float glassBall = sSphere(glassBallPoint+vec3(0,y,x),vec3(0),.5);
 	
-	float glassBall = sSphere(glassBallPoint+vec3(0,y,x),vec3(0),.7);
+	vec3 glassBallPoint2 = point;
+	glassBallPoint2.x += 2.;
+	glassBallPoint2.z += 1.;
+	float glassBall2 = sSphere(glassBallPoint2+vec3(0,-y,-x),vec3(0),.5);
+	glassBall = smin(glassBall,glassBall2,0.3);
 	
 	
 	
@@ -187,8 +215,10 @@ int idField(vec3 point)
 	float clam2 =distClam(clamPoint2);
 	dist = min(dist,clam);
 	dist = min(dist,clam2);
+	dist = min(dist,babyGold);
 	if(dist == glassBall) return idGlass;
-	else if(dist == goldPearl || dist == goldPearl2 ) return idGold;
+	else if(dist== babyGold) return idGold;
+	else if(dist == goldPearl || dist == goldPearl2  ) return idPearl;
 	else if(dist == plane) return idFloor;
 	else if(dist == clam || dist == clam2) return idClam;
 	else return idOpaque;
@@ -241,27 +271,27 @@ Raymarch rayMarch(vec3 rayOrigin, vec3 rayDirection)
 	return rm;
 }
 
-void initLights()
+void initLights(vec3 movement)
 {
-	lights[0].lightPos = vec3(0,0,-2);
+	lights[0].lightPos = vec3(0,0,-2)+movement;
 	// lights[0].color = vec3(lightCol1,0,0);
 	lights[0].color = vec3(1);
-	lights[0].kIntensity = 0.3;
+	lights[0].kIntensity = 1.;
 	
-	lights[1].lightPos = vec3(10,10,-2);
-	// lights[1].color = vec3(0,lightCol2,0);
+	lights[1].lightPos = vec3(10,10,-2)+movement;
+	// lights[1].color = vec3(0.3,0,0);
 	lights[1].color = vec3(1);
-	lights[1].kIntensity = 0.2;
+	lights[1].kIntensity = 1.0;
 	
-	lights[2].lightPos = vec3(-10,-10,-2);
-	// lights[2].color = vec3(0,0,lightCol3);
-	lights[2].color = vec3(1);
-	lights[2].kIntensity = 0.3;
+	lights[2].lightPos = vec3(-10,-10,-2)+movement;
+	lights[2].color = vec3(0,0.3,0);
+	// lights[2].color = vec3(1);
+	lights[2].kIntensity = 0.6;
 	
-	// lights[3].lightPos = vec3(10,-10,-2);
-	// lights[3].color = vec3(lightCol4);
-	lights[3].color = vec3(1);
-	lights[3].kIntensity = 0.2;
+	lights[3].lightPos = vec3(10,-10,-2)+movement;
+	lights[3].color = vec3(0,0,0.3);
+	// lights[3].color = vec3(1);
+	lights[3].kIntensity = 0.5;
 }
 void initMaterials()
 {
@@ -282,13 +312,21 @@ void initMaterials()
 	opaqueMat.reflectiveIndex = 0.05;
 	opaqueMat.transparency = 0.0;
 	
-	goldMat.ambientColor=vec4(vec3(236,179,255)/512,1);
+	goldMat.ambientColor= vec4(0.24725,0.1995,0.0745,1);
 	goldMat.kDiffuse = vec3(0.75164,0.60648,0.22648);
 	goldMat.kSpecular = vec3(0.628281,0.555802,0.366065);
-	goldMat.shininess = int(0.4*128);
+	goldMat.shininess = int(0.1*128);
 	goldMat.refractiveIndex = 0.0;	
-	goldMat.reflectiveIndex = 0.6;
+	goldMat.reflectiveIndex = 0.1;
 	goldMat.transparency = 0.0;
+	
+	pearlMat.ambientColor=vec4(vec3(236,179,255)/512,1);
+	pearlMat.kDiffuse = vec3(0.75164,0.60648,0.22648);
+	pearlMat.kSpecular = vec3(0.628281,0.555802,0.366065);
+	pearlMat.shininess = int(0.4*128);
+	pearlMat.refractiveIndex = 0.0;	
+	pearlMat.reflectiveIndex = 0.6;
+	pearlMat.transparency = 0.0;
 	
 	floorMat.ambientColor = vec4(0.5,0.5,.5,1.);
 	floorMat.kDiffuse=vec3(0.1);
@@ -307,6 +345,7 @@ Material getMaterial(int id)
 		case idOpaque: return opaqueMat;	
 		case idGold: return goldMat;
 		case idFloor: return floorMat;		case idClam: return opaqueMat;
+		case idPearl: return pearlMat;
 	}
 }
 vec3 getAmbient()
@@ -348,7 +387,7 @@ vec4 shade(vec3 pointHit,vec3 rayDirection, out Material mat)
 	int id = idField(pointHit);
 	mat = getMaterial(id);
 	
-	for(int i=0;i<2;i++)
+	for(int i=0;i<4;i++)
 	{
 		//Ambient light
 		vec3 partColor = mat.ambientColor.rgb * backgroundColor;
@@ -360,7 +399,7 @@ vec4 shade(vec3 pointHit,vec3 rayDirection, out Material mat)
 		vec3 specular = lights[i].kIntensity * mat.kSpecular * calcSpecular(lights[i].lightPos-pointHit,rayDirection,normal,mat.shininess);
 		partColor += specular;
 		
-		color += partColor*lights[i].color;
+		color += partColor*lights[i].kIntensity*lights[i].color;
 				
 	}	
 	return vec4(color,mat.ambientColor.a);
@@ -470,12 +509,31 @@ vec4 render(Raymarch rm)
 	return color+ calcReflection(rm.pointHit.xyz,rm.rayDirection.xyz);
 	
 }
+
+// Rotate around a coordinate axis (i.e. in a plane perpendicular to that axis) by angle <a>.
+// Read like this: R(p.xz, a) rotates "x towards z".
+// This is fast if <a> is a compile-time constant and slower (but still practical) if not.
+void rotateAxis(inout vec2 p, float a) {
+	p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
+}
+
+vec3 calcCameraRayDir(float fov, vec2 fragCoord, vec2 resolution,vec3 cameraAngles) 
+{
+	float tanFov = tan(fov / 2.0 * 3.14159 / 180.0) / resolution.x;
+	vec2 p = tanFov * (fragCoord * 2.0 - resolution.xy);
+	vec3 rayDir = normalize(vec3(p.x, p.y, 1.0));
+	rotateAxis(rayDir.yz, cameraAngles.x);
+	rotateAxis(rayDir.xz, cameraAngles.y);
+	rotateAxis(rayDir.xy, cameraAngles.z);
+	return rayDir;
+}
 void main()
 {
-	initLights();
+	
 	initMaterials();
-	vec3 camP = calcCameraPos() ;//+ vec3(0, 0, -1);
-	vec3 camDir = calcCameraRayDir(80.0, gl_FragCoord.xy, iResolution);
+	vec3 camP =  vec3(1, 1.5, -1) + iGlobalTime*vec3(-1,0,0)/2;
+	initLights(iGlobalTime*vec3(-1,0,0)/2);
+	vec3 camDir = calcCameraRayDir(80.0, gl_FragCoord.xy, iResolution,vec3(-PI/12,-PI/2,0));
 	camPosBall = camP;
 	//start point is the camera position
 	vec3 point = camP; 	
