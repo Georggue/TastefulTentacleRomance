@@ -11,6 +11,13 @@ uniform float iGlobalTime;
 uniform sampler2D tex0; // octopus body
 uniform sampler2D tex1; // dress
 
+uniform float friedaPosX;
+uniform float friedaPosY;
+uniform float friedaPosZ;
+uniform float fridoPosX;
+uniform float fridoPosY;
+uniform float fridoPosZ;
+
 const float epsilon = 0.01;
 const int maxSteps = 128;
 const float glowRadius = 0.1;
@@ -216,10 +223,13 @@ float distTable(vec3 p)
 }
 Octopus distMonster(vec3 point, bool isMale,Octopus monster)
  {
+	
+	// point = 
 	if(isMale == FRIEDA)
 	{
+		point += vec3(friedaPosX,friedaPosY,friedaPosZ);
 		// point.z -= 1.0;
-		point.x -=4;
+		// point.x -=4;
 		// tentacles FRIEDA
 		vec3 tentaclePoint = point;		
 		float move = dot(point.yz, point.yz) * 0.2 * (sin(iGlobalTime));
@@ -279,20 +289,20 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		float sphereEye1 = fSphere(headPos, 0.09);	
 		vec3 eyeballPoint = headPos;
 		eyeballPoint.x +=.022;
-		eyeballPoint.y-=.01;
+		eyeballPoint.y+=.04;
 		eyeballPoint.z -= 0.01;
-		eyeballPoint.x +=sin(iGlobalTime*4)/35;
-		eyeballPoint.y +=cos(iGlobalTime*4)/35;
-		float sphereEyeFilled1 = fSphere(eyeballPoint,0.03);
+		// eyeballPoint.x +=sin(iGlobalTime*4)/35;
+		// eyeballPoint.y +=cos(iGlobalTime*4)/35;
+		float sphereEyeFilled1 = fSphere(eyeballPoint,0.02);
 		headPos.x +=.2;
 		 
 		float sphereEye2 = fSphere(headPos, 0.09);
 		eyeballPoint = headPos;
-		eyeballPoint.y-=.01;
+		eyeballPoint.y+=.04;
 		eyeballPoint.x -=0.022;
 		 
-		eyeballPoint.x +=cos(iGlobalTime*4)/35;
-		eyeballPoint.y +=sin(iGlobalTime*4)/35;
+		// eyeballPoint.x +=cos(iGlobalTime*4)/35;
+		// eyeballPoint.y +=sin(iGlobalTime*4)/35;
 		float sphereEyeFilled2 = fSphere(eyeballPoint,0.02);	 
 			
 		monster.body.eyes = opUnion(sphereEye1,sphereEye2);
@@ -382,6 +392,8 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		
 	}else if(isMale == FRIDOLIN)
 	{
+		point += vec3(fridoPosX,fridoPosY,fridoPosZ);
+		point = rotateY(point,-PI/2);		
 	 // tentacles FRIDOLIN
 		vec3 tentaclePoint = point;		
 		float move = dot(point.yz, point.yz) * 0.2 * (sin(iGlobalTime));
@@ -422,8 +434,8 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		float sphereEye1 = fSphere(headPos, 0.09);	
 		vec3 eyeballPoint = headPos;
 		eyeballPoint.x +=.022;
-		eyeballPoint.y-=.01;
-		eyeballPoint.x +=sin(iGlobalTime*4)/35;
+		eyeballPoint.y-=.03;
+		// eyeballPoint.x +=sin(iGlobalTime*4)/35;
 		eyeballPoint.y +=cos(iGlobalTime*4)/35;
 		float sphereEyeFilled1 = fSphere(eyeballPoint,0.03);
 		headPos.x +=.2;
@@ -441,11 +453,11 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		
 		float sphereEye2 = fSphere(headPos, 0.09);
 		eyeballPoint = headPos;
-		eyeballPoint.y-=.01;
+		eyeballPoint.y-=.03;
 		eyeballPoint.x -=0.022;
 		 
-		eyeballPoint.x +=cos(iGlobalTime*4)/35;
-		eyeballPoint.y +=sin(iGlobalTime*4)/35;
+		// eyeballPoint.x +=cos(iGlobalTime*4)/35;
+		eyeballPoint.y +=cos(iGlobalTime*4)/35;
 		float sphereEyeFilled2 = fSphere(eyeballPoint,0.02);	 
 			
 		monster.body.eyes = opUnion(sphereEye1,sphereEye2);
@@ -556,7 +568,7 @@ Octopus distMonster(vec3 point, bool isMale,Octopus monster)
 		ribbonBeltPoint.y -= .4;
 		float cutLiquid = fBox(ribbonBeltPoint, vec3(.1, .5,.25));
 		monster.wine.liquid = opDifference(monster.wine.liquid, cutLiquid);
-		// ribbonBeltPoint.x -=5;
+		ribbonBeltPoint.x -=5;
 		monster.table.table = distTable(ribbonBeltPoint);
 	}
 	// color
@@ -570,7 +582,7 @@ vec4 calculateColors(bool isMale, vec3 uv)
 	if(isMale == FRIEDA)
 	{
 		monster = frieda;
-		
+		uv += vec3(friedaPosX,friedaPosY,friedaPosZ);
 		// eyeballs FRIEDA
 		if(monster.eyeballs.eyeballs < monster.body.body && monster.eyeballs.eyeballs < monster.body.head)
 		{
@@ -613,8 +625,10 @@ vec4 calculateColors(bool isMale, vec3 uv)
 		else
 		{
 			col =  vec4(monster.body.col,1);
+			
 			//Same body transformations as above
-			uv.x -=4;
+			// uv += vec3(friedaPosX,friedaPosY,friedaPosZ);
+			// uv.x -=4;
 			uv = rotateZ(uv,sin(PI / 2 * iGlobalTime)/4);
 			uv.y -= 0.85;
 			col.rgb += (texture2D(tex0, uv.xy*4).x)*0.25;
@@ -624,6 +638,8 @@ vec4 calculateColors(bool isMale, vec3 uv)
 	}
 	else
 	{
+		uv += vec3(fridoPosX,fridoPosY,fridoPosZ);
+		uv = rotateY(uv,-PI/2);	
 		monster= fridolin;
 		//TABLE FRIDOLIN
 		if(monster.table.table < monster.body.totalDist && monster.table.table < monster.dress.dress&& monster.table.table < monster.jacket.jacket&& monster.table.table < monster.shirt.shirt && monster.table.table < monster.wine.wine)
@@ -748,10 +764,10 @@ Octopus calculateOctopusStuff(Octopus octoInput, bool isMale)
 		dist = opUnion(dist,octoInput.dress.dress);
 		dist = opUnion(dist, octoInput.jacket.jacket);
 		dist = opUnion(dist, octoInput.beltRibbon.ribbon);
-		dist = opUnion(dist, octoInput.wine.label);
-		dist = opUnion(dist, octoInput.wine.wine);
-		dist = opUnion(dist, octoInput.wine.liquid);
-		dist = opUnion(dist, octoInput.table.table);
+		// dist = opUnion(dist, octoInput.wine.label);
+		// dist = opUnion(dist, octoInput.wine.wine);
+		// dist = opUnion(dist, octoInput.wine.liquid);
+		// dist = opUnion(dist, octoInput.table.table);
 		monster.dist = dist;
 	}
 	return monster;
@@ -931,7 +947,7 @@ void main()
 		float diffuse = max(0, dot(toLight, normal));
 		vec3 ambient = vec3(0.3);
 		color.rgb = ambient + diffuse * material.rgb;
-		color.rgba =min(color.rgba, getAO(rm.pointHit.xyz) * material.rgba);
+		color.rgba =mix(color.rgba, getAO(rm.pointHit.xyz) * material.rgba,0.5);
 		// color.rgba =ambientOcclusion(rm.pointHit.xyz, 0.1 , 20) * material.rgba;
 		// color.rgba = getAO(rm.pointHit.xyz)*material.rgba;
 	}

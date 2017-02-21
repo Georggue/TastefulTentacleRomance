@@ -1,7 +1,7 @@
 // Modified version of the "Volcanic" shader by by inigo quilez - iq/2013
 // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 
-#define YOSHI
+// #define YOSHI
 uniform vec2 iResolution;
 uniform vec3 iMouse;
 uniform float iGlobalTime;

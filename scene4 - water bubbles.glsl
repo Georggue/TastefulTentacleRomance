@@ -11,11 +11,11 @@ uniform float lightCol3;
 uniform float lightCol4;
 uniform float angle;
 const float epsilon = 0.0001;
-const int maxSteps = 256;
+const int maxSteps = 512;
 vec3 camPosBall;
 
-const int maxRefractions = 8;
-const int maxReflections = 1 ;
+const int maxRefractions = 10;
+const int maxReflections = 3 ;
 
 struct Raymarch
 {
@@ -276,12 +276,12 @@ void initLights(vec3 movement)
 	lights[0].lightPos = vec3(0,0,-2)+movement;
 	// lights[0].color = vec3(lightCol1,0,0);
 	lights[0].color = vec3(1);
-	lights[0].kIntensity = 1.;
+	lights[0].kIntensity = 0.7;
 	
 	lights[1].lightPos = vec3(10,10,-2)+movement;
 	// lights[1].color = vec3(0.3,0,0);
 	lights[1].color = vec3(1);
-	lights[1].kIntensity = 1.0;
+	lights[1].kIntensity = 0.8;
 	
 	lights[2].lightPos = vec3(-10,-10,-2)+movement;
 	lights[2].color = vec3(0,0.3,0);
@@ -531,7 +531,7 @@ void main()
 {
 	
 	initMaterials();
-	vec3 camP =  vec3(1, 1.5, -1) + iGlobalTime*vec3(-1,0,0)/2;
+	vec3 camP =  vec3(1, 1.1, -1) + iGlobalTime*vec3(-1,0,0)/2;
 	initLights(iGlobalTime*vec3(-1,0,0)/2);
 	vec3 camDir = calcCameraRayDir(80.0, gl_FragCoord.xy, iResolution,vec3(-PI/12,-PI/2,0));
 	camPosBall = camP;

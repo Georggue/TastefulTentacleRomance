@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DemoData2 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Uniforms />
+  <Tracks>
+    <Track>
+      <Name>sum</Name>
+      <ShaderKeyframes>
+        <ShaderKeyframe>
+          <Time>0</Time>
+          <ShaderPath>..\scene1 - title.glsl</ShaderPath>
+        </ShaderKeyframe>
+      </ShaderKeyframes>
+    </Track>
+  </Tracks>
+  <Textures>
+    <string>..\peebles-depth.jpg</string>
+    <string>..\knittedWool.jpg</string>
+  </Textures>
+  <SoundFileName />
+</DemoData2>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DemoData2 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Uniforms />
+  <Tracks>
+    <Track>
+      <Name>sum</Name>
+      <ShaderKeyframes>
+        <ShaderKeyframe>
+          <Time>0</Time>
+          <ShaderPath>..\scene4 - water bubbles.glsl</ShaderPath>
+        </ShaderKeyframe>
+      </ShaderKeyframes>
+    </Track>
+  </Tracks>
+  <Textures />
+  <SoundFileName>..\In Your Arms.mp3</SoundFileName>
+</DemoData2>

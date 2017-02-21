@@ -71,7 +71,7 @@ vec3 heart(vec2 p)
 	// p.x+=fBm(p.y);
 	p -= 0.5;
 	p*=2.25;
-	 float tt = mod(iGlobalTime,1.5)/1.5;
+	float tt = mod(iGlobalTime,1.2)/1.5;
     float ss = pow(tt,.2)*0.5 + 0.5;
     ss = 1.0 + ss*0.5*sin(tt*6.2831*3.0 + p.y*0.5)*exp(-tt*4.0);
     p *= vec2(0.5,1.5) + ss*vec2(0.5,-0.5);
@@ -117,8 +117,8 @@ vec3 grid(vec2 _st, float _zoom){
    
 	
 	
-	_st.y += direction(_st.x)* move(iGlobalTime);
-	_st.x += direction(_st.y)* move(iGlobalTime+1);
+	_st.y += direction(_st.x)* move(iGlobalTime/2);
+	_st.x += direction(_st.y)* move(iGlobalTime/2+1);
 	
 	vec2 fractCoord = fract(_st);
 	//No additional noise for the heart -> looks too beautiful for this world
@@ -154,7 +154,7 @@ void main() {
 	Amplitude = 0.01;
 	coord01.x += fBm(coord01.y * Frequency  + Phase) * Amplitude;	
 	
-	color.rgb += texture2D(tex0,coord01).rgb * selectTile(coord01,0.1,1);
+	// color.rgb += texture2D(tex0,coord01).rgb * selectTile(coord01,0.1,1);
 		
 	float gray = (color.r + color.r + color.b + color.g + color.g + color.g)/6;
 	color.r += 0.1*(1-gray);
