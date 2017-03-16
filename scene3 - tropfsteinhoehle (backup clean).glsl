@@ -301,8 +301,8 @@ void main()
 		col = calculateColors(camPos,rd,t,pos,nor);
 		#ifdef YOSHI
 			col.b += sin(iGlobalTime)*cos(iGlobalTime);
-			col.r +=sin(iGlobalTime);
-			col.g +=cos(iGlobalTime);
+			col.r += sin(iGlobalTime);
+			col.g += cos(iGlobalTime);
 		#endif
 		//col = vec3(1);
 		col =  bac*col;
